@@ -167,7 +167,7 @@ function stepPlayer(dt){
 }
 
 /* ================= OBSTACLES + PATTERNS ================= */
-const ON=160,obs=Array.from({length:ON},()=>({on:0,x:0,y:0,vx:0,vy:0,s:30,r:0,vr:0,a:0,near:0,h:0,hp:1,f:0,hb:-1,ht:-9,k:0,tm:0,sp:0,life:0}));
+const ON=220,obs=Array.from({length:ON},()=>({on:0,x:0,y:0,vx:0,vy:0,s:30,r:0,vr:0,a:0,near:0,h:0,hp:1,f:0,hb:-1,ht:-9,k:0,tm:0,sp:0,life:0}));
 // dl = spawn delay in seconds (staggers sequences), h = homing time in seconds
 function spawnObs(x,y,vx,vy,s,dl,h){for(let i=0;i<ON;i++){const o=obs[i];if(o.on)continue;o.on=1;o.x=x;o.y=y;o.vx=vx;o.vy=vy;o.s=s;o.r=rnd(0,TAU);o.vr=rnd(-1.8,1.8)*(1+Math.hypot(vx,vy)/600);o.a=-(dl||0);o.near=0;o.h=h||0;o.hp=Math.ceil(s/22);o.f=0;o.hb=-1;o.ht=-9;o.k=0;o.tm=0;return o}}
 const DIR=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -483,61 +483,39 @@ Object.assign(sfx,{event(){noise(.6,.3,500);tone(70,.7,'sawtooth',.1,35)},crack(
 
 /* ================= THE ROARING KNIGHT (one-time boss) ================= */
 // Runs as the 'knight' super event. States (ROARING_KNIGHT_*): appearing > transforming > idle > vacuuming > spilling > departing > gone.
-// All 13 frames share one 754x653 canvas, so every frame is drawn from the same anchor (the orb's centre).
+// Every animation frame lasts 100 ms and frames hard-cut (no cross-fades). All 13 frames share one 754x653 canvas, so they draw from one anchor.
 const KI={};for(const k in KA.img){const im=new Image();im.src=KA.img[k];KI[k]=im}
-const KN={sc:.52,ax:400,ay:305,back:Math.PI,step:.5,x:AW+190,y:AH*.52};   // sprite scale, anchor, trail direction (he faces right, so "behind" = left), seconds per frame
-const SQ={orb:['ball1','ball2','ball3','ball4','ball5'],trn:['ball5','t0','t1','t2','t3','idle'],orbr:['ball5','ball4','ball3','ball2','ball1']};
-const K={on:false,fr:0,st:'gone',t:0,x:KN.x,y:KN.y,a:0,s:1,sx:0,sy:0,fx:0,acc:0,col:0,ph:0,mus:0,hold:'r3',dep:null,vac:null,roar:null,rlen:2.2,buf:{},loading:false,L:[null,0,null,0]};
-const MUS={h:null};
+const KN={sc:.52,ax:400,ay:305,fr:.1,x:AW+165,y:AH*.52};   // sprite scale, anchor in the sprite canvas, seconds per frame, position (right of the arena)
+const SQ={orb:['ball1','ball2','ball3','ball4','ball5'],trn:['t0','t1','t2','t3'],dep:['t3','t2','t1','t0','ball5','ball4','ball3','ball2','ball1']};
+const K={on:false,fr:0,st:'gone',t:0,x:KN.x,y:KN.y,s:1,sx:0,sy:0,fx:0,gacc:0,col:0,ph:0,mus:0,im:null,vac:null,roar:null,vacT:5,rel:0,relN:0,racc:0,buf:{},loading:false};
+const MUS={h:null,f:null};
 const sm=u=>u<=0?0:u>=1?1:u*u*(3-2*u);
-function seq(list,t,step,xf){   // frame sequence with cross-fades -> K.L (base frame + fading-in next frame)
-  const L=K.L,n=list.length-1,i=Math.min(n,Math.floor(t/step));
-  L[0]=KI[list[i]];L[1]=1;L[2]=null;L[3]=0;
-  if(i<n){const b=sm((t/step-i-(1-xf))/xf);if(b>0){L[2]=KI[list[i+1]];L[3]=b}}
-}
-const pose=k=>{const L=K.L;L[0]=KI[k];L[1]=1;L[2]=null;L[3]=0};
+const anim=(list,t)=>KI[list[Math.min(list.length-1,Math.floor(t/KN.fr))]];   // frame to show at time t
+const animDone=(list,t)=>t>=list.length*KN.fr;
 /* --- audio: decoded once, played through the game's master gain (so mute works); every handle can be faded + disposed --- */
 function b64buf(d){const s=atob(d.slice(d.indexOf(',')+1)),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u.buffer}
 function knightPreload(){if(K.loading||!AC)return;K.loading=true;for(const k in KA.aud)AC.decodeAudioData(b64buf(KA.aud[k])).then(b=>{K.buf[k]=b}).catch(()=>{})}
 function playBuf(b,vol){if(!AC||!b)return null;const s=AC.createBufferSource(),g=AC.createGain();s.buffer=b;g.gain.value=vol;s.connect(g);g.connect(master);s.onended=()=>{try{s.disconnect();g.disconnect()}catch(e){}};s.start();return{s,g}}
 function stopSnd(h,fade){if(!h||!AC)return;try{const t=AC.currentTime;h.g.gain.cancelScheduledValues(t);h.g.gain.setValueAtTime(h.g.gain.value,t);if(fade>0)h.g.gain.linearRampToValueAtTime(0,t+fade);else h.g.gain.value=0;h.s.stop(t+fade+.02)}catch(e){}}
 function musicStart(){if(MUS.h||!K.buf.music)return;MUS.h=playBuf(K.buf.music,.7)}
-function musicStop(f){const h=MUS.h;MUS.h=null;stopSnd(h,f)}
-/* --- jagged energy trail: its own particle pool (the shared one only draws squares) --- */
-const SN=260,shd=Array.from({length:SN},()=>({on:0,x:0,y:0,vx:0,vy:0,l:0,m:1,len:40,w:1,k:0,c:0,sd:0}));let shi=0;
-const hs=n=>{const x=Math.sin(n*12.9898)*43758.5453;return x-Math.floor(x)};
-function spawnShard(){   // spawns beside the boss, then streams backward while stretching, flickering and fading
-  const p=shd[shi];shi=(shi+1)%SN;
-  const bx=Math.cos(KN.back),by=Math.sin(KN.back),a=KN.back+rnd(-.2,.2),sp=rnd(380,980),o=rnd(-105,105),b=rnd(-20,70),r=Math.random();
-  p.on=1;p.x=K.x-by*o+bx*b;p.y=K.y+bx*o+by*b;p.vx=Math.cos(a)*sp;p.vy=Math.sin(a)*sp;p.m=p.l=rnd(.45,1.25);
-  p.len=rnd(40,230)*(.55+sp/1300);p.w=rnd(.7,2.3);p.k=r<.45?0:r<.8?1:2;p.c=Math.random()<.16?1:0;p.sd=rnd(0,1000);
-}
-function stepShards(dt){
-  K.acc+=95*K.fx*dt;while(K.acc>=1){K.acc--;spawnShard()}
-  for(let i=0;i<SN;i++){const p=shd[i];if(!p.on)continue;p.l-=dt;if(p.l<=0){p.on=0;continue}p.x+=p.vx*dt;p.y+=p.vy*dt}
-}
-const shardsLive=()=>{let n=0;for(let i=0;i<SN;i++)if(shd[i].on)n++;return n};
-function drawShards(){
-  ctx.save();rr(0,0,AW,AH,26);ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
-  const tk=Math.floor(clock*24);
-  for(let i=0;i<SN;i++){const p=shd[i];if(!p.on)continue;
-    const age=1-p.l/p.m,sp=Math.hypot(p.vx,p.vy)||1,dx=p.vx/sp,dy=p.vy/sp,L=p.len*(1+age*1.2),tx=p.x-dx*L,ty=p.y-dy*L;
-    A(Math.min(1,(1-age)*1.8)*(hs(tk+p.sd)<.18?.3:1));ctx.strokeStyle=ctx.fillStyle=p.c?'#ff2a2a':'#f2f2f6';ctx.lineWidth=p.w;ctx.beginPath();
-    if(p.k===0){ctx.moveTo(p.x,p.y);ctx.lineTo(tx,ty);ctx.stroke()}                                               // thin straight streak
-    else if(p.k===1){ctx.moveTo(p.x,p.y);for(let j=1;j<=4;j++){const f=j/4,o=(hs(tk*.5+p.sd+j)-.5)*18*(1+age);ctx.lineTo(p.x+(tx-p.x)*f-dy*o,p.y+(ty-p.y)*f+dx*o)}ctx.stroke()}   // jagged zig-zag, re-rolled ~12x/s
-    else{const w=3+p.w*2.5;ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-dx*w*3-dy*w*.7,p.y-dy*w*3+dx*w*.7);ctx.lineTo(p.x-dx*w*3+dy*w*.7,p.y-dy*w*3-dx*w*.7);ctx.closePath();ctx.fill()}   // small angular fragment
-  }
-  ctx.restore();A(1);
+function musicStop(f){const h=MUS.h;MUS.h=null;if(h){MUS.f=h;stopSnd(h,f)}}
+function musicKill(){stopSnd(MUS.h,0);stopSnd(MUS.f,0);MUS.h=MUS.f=null}
+/* --- afterimage trail: duplicates of the current frame are left behind, drift right at a constant speed and fade out --- */
+const GN=40,gh=Array.from({length:GN},()=>({on:0,x:0,y:0,l:0,m:.55,a:1,z:1,im:null}));let ghi=0;
+const ghLive=()=>{let n=0;for(let i=0;i<GN;i++)if(gh[i].on)n++;return n};
+function stepGhosts(dt){
+  K.gacc+=K.fx*dt;
+  if(K.gacc>=.04&&K.im){K.gacc%=.04;const g=gh[ghi];ghi=(ghi+1)%GN;g.on=1;g.x=K.x+K.sx;g.y=K.y+K.sy;g.l=g.m=.55;g.a=.25+.45*K.fx;g.z=KN.sc*K.s;g.im=K.im}
+  for(let i=0;i<GN;i++){const g=gh[i];if(!g.on)continue;g.l-=dt;if(g.l<=0){g.on=0;continue}g.x+=260*dt}
 }
 function drawKnight(){
-  if(!K.on&&!shardsLive())return;
-  drawShards();
-  if(!K.on||!KI.idle.naturalWidth)return;
-  const z=KN.sc*K.s,L=K.L;
-  ctx.save();ctx.translate(K.x+K.sx,K.y+K.sy);
-  ctx.globalCompositeOperation='lighter';A(.55*K.a);ctx.drawImage(glowW,-270,-270,540,540);   // soft light so the black body reads as a silhouette
-  ctx.globalCompositeOperation='source-over';ctx.imageSmoothingEnabled=false;ctx.scale(z,z);   // crisp pixel art
-  for(let i=0;i<4;i+=2){const im=L[i];if(im&&im.naturalWidth){A(L[i+1]*K.a);ctx.drawImage(im,-KN.ax,-KN.ay)}}
+  if(!K.on&&!ghLive())return;
+  ctx.save();ctx.imageSmoothingEnabled=false;   // crisp pixel art
+  for(let n=0;n<GN;n++){const g=gh[(ghi+n)%GN];if(!g.on||!g.im.naturalWidth)continue;A(g.a*g.l/g.m);ctx.save();ctx.translate(g.x,g.y);ctx.scale(g.z,g.z);ctx.drawImage(g.im,-KN.ax,-KN.ay);ctx.restore()}   // oldest first, so newer copies overlap older ones
+  if(K.on&&K.im&&K.im.naturalWidth){
+    ctx.save();ctx.translate(K.x+K.sx,K.y+K.sy);
+    ctx.globalCompositeOperation='lighter';A(.5);ctx.drawImage(glowW,-270,-270,540,540);ctx.globalCompositeOperation='source-over';   // soft light so the black body reads as a silhouette
+    A(1);ctx.scale(KN.sc*K.s,KN.sc*K.s);ctx.drawImage(K.im,-KN.ax,-KN.ay);ctx.restore()}
   ctx.restore();A(1);
 }
 /* --- the knight's cubes: real obstacle-pool objects with modes (k): 1 pulled in, 2 spilled (fast, then decelerating), 3 small split cubes --- */
@@ -568,72 +546,76 @@ function knightSplit(o){   // one slowed block -> three small cubes on different
     c.k=3;c.tm=0;c.a=1;c.vx=Math.cos(a)*v;c.vy=Math.sin(a)*v;if(!i)c.s=rnd(16,22);c.hp=1;c.sp=rnd(-1,1);c.life=rnd(3.6,5);
   }
 }
-function startVacuum(){
-  setSt('vacuuming');K.col=0;
-  for(let i=0;i<20;i++){let x,y,q=0;do{x=rnd(80,AW-80);y=rnd(80,AH-80)}while((Math.hypot(x-P.x,y-P.y)<170||Math.hypot(x-K.x,y-K.y)<160)&&++q<14);
-    const o=spawnObs(x,y,0,0,rnd(34,46),i*.045);if(o){o.k=1;o.tm=0}}
-  K.vac=playBuf(K.buf.vac,.8);sfx.warn();                                       // vacuum sound: started once here, stopped when pickup ends
+function spawnVac(){   // a fresh cube appears somewhere on the map and starts being pulled in
+  let x,y,q=0;do{x=rnd(80,AW-80);y=rnd(80,AH-80)}while(Math.hypot(x-P.x,y-P.y)<150&&++q<12);
+  const o=spawnObs(x,y,0,0,rnd(34,46));if(o){o.k=1;o.tm=0}
 }
-function knightSpill(){
-  const n=Math.min(16,Math.max(9,K.col));
-  for(let i=0;i<n;i++){const a=Math.PI+((i+.5)/n-.5)*2.3+rnd(-.05,.05),v=1250*rnd(.85,1.1),o=spawnObs(K.x,K.y,Math.cos(a)*v,Math.sin(a)*v,rnd(34,46));if(o){o.k=2;o.tm=0;o.a=1;o.vr*=3}}
-  const dx=P.x-K.x,dy=P.y-K.y,d=Math.hypot(dx,dy)||1;if(d<260){const f=(1-d/260)*900;P.vx+=dx/d*f;P.vy+=dy/d*f}   // shockwave shoves you away
-  burst(K.x,K.y,44,900,.7,3.2,1,3);burst(K.x,K.y,20,600,.6,3,0,3);shake(.7);G.fl=Math.max(G.fl,.2);G.fc=0;
-  const b=K.buf.roar;K.rlen=b?clamp(b.duration,1.6,3.2):2.2;K.roar=playBuf(b,.9);   // roar: started once here
+function spillOne(){   // one cube shot out of the boss, leftward into the arena
+  const a=Math.PI+rnd(-1.15,1.15),v=1250*rnd(.85,1.1),o=spawnObs(K.x-30,K.y+rnd(-40,40),Math.cos(a)*v,Math.sin(a)*v,rnd(34,46));
+  if(o){o.k=2;o.tm=0;o.a=1;o.vr*=3}
+  burst(K.x-30,K.y,3,520,.3,2.6,1,3);shake(.03);
 }
 function setSt(s){K.st=s;K.t=0}
-function startKnight(){G.kForce=false;K.on=true;K.x=KN.x;K.y=KN.y;K.a=0;K.s=.78;K.fx=0;K.acc=0;K.mus=0;K.col=0;K.ph=0;K.sx=K.sy=0;setSt('appearing');knightPreload()}
-function startDeparting(){setSt('departing');K.dep=['idle','t3','t2','t1','t0','ball5'];K.mus=2;musicStop(1.8);stopSnd(K.roar,.4);K.roar=null}   // music fades out the moment he starts to leave
+function startKnight(){G.kForce=false;K.on=true;K.x=KN.x;K.y=KN.y;K.s=.6;K.fx=0;K.gacc=0;K.mus=0;K.col=0;K.ph=0;K.sx=K.sy=0;K.im=KI.ball1;setSt('appearing');knightPreload()}
+function startVacuum(){
+  setSt('vacuuming');K.col=0;K.racc=0;
+  K.vacT=K.buf.vac?clamp(K.buf.vac.duration-1.2,3,6):5;K.vac=playBuf(K.buf.vac,.8);sfx.warn();   // vacuum sound: started once, stopped when the pickup ends
+}
+function startRelease(){
+  K.ph=1;K.t=0;K.s=1;K.rel=0;K.racc=0;K.relN=clamp(K.col,12,34);
+  burst(K.x,K.y,30,700,.6,3,1,3);shake(.5);G.fl=Math.max(G.fl,.15);G.fc=0;K.roar=playBuf(K.buf.roar,.9);   // roar: started once here
+}
+function startDeparting(){setSt('departing');K.mus=2;musicStop(1.2);stopSnd(K.roar,.4);K.roar=null}   // music fades out the moment he starts to leave
 function knightFinish(){   // encounter over: nothing of the boss may remain
-  K.on=false;K.st='gone';K.mus=2;musicStop(0);stopSnd(K.vac,0);stopSnd(K.roar,0);K.vac=K.roar=null;
-  knightClearCubes();for(let i=0;i<SN;i++)shd[i].on=0;K.acc=0;K.fx=0;G.knightDone=true;endEv();
+  K.on=false;K.st='gone';K.mus=2;musicKill();stopSnd(K.vac,0);stopSnd(K.roar,0);K.vac=K.roar=null;
+  knightClearCubes();for(let i=0;i<GN;i++)gh[i].on=0;K.fx=0;G.knightDone=true;endEv();
 }
 function knightAbort(){   // the run ended mid-fight (player died)
-  if(!K.on)return;K.on=false;K.st='gone';K.mus=2;musicStop(1);stopSnd(K.vac,.2);stopSnd(K.roar,.2);K.vac=K.roar=null;for(let i=0;i<SN;i++)shd[i].on=0;
+  if(!K.on)return;K.on=false;K.st='gone';K.mus=2;musicStop(1);stopSnd(K.vac,.2);stopSnd(K.roar,.2);K.vac=K.roar=null;for(let i=0;i<GN;i++)gh[i].on=0;
 }
 function knightReset(){   // new run
-  K.on=false;K.st='gone';K.mus=0;musicStop(0);stopSnd(K.vac,0);stopSnd(K.roar,0);K.vac=K.roar=null;for(let i=0;i<SN;i++)shd[i].on=0;G.knightDone=false;G.kForce=false;knightPreload();
+  K.on=false;K.st='gone';K.mus=0;musicKill();stopSnd(K.vac,0);stopSnd(K.roar,0);K.vac=K.roar=null;for(let i=0;i<GN;i++)gh[i].on=0;G.knightDone=false;G.kForce=false;knightPreload();
 }
 function stepKnight(dt){
   if(!K.on)return;
-  K.t+=dt;const t=K.t;K.sx=0;K.sy=Math.sin(clock*2.2)*8;
+  K.t+=dt;const t=K.t;K.sx=0;K.sy=Math.sin(clock*2.2)*8;   // he hovers
   if(!K.mus&&K.buf.music&&(K.st==='idle'||K.st==='vacuuming'||K.st==='spilling')){K.mus=1;musicStart()}   // boss music: only once idle, never twice
   switch(K.st){
-  case 'appearing':{   // orb materialises: fade-in + scale-up, frames ball1..ball5 at 0.5s each
-    const u=sm(t/1.6);K.a=u;K.s=.78+.22*u;K.fx=1.2*u;seq(SQ.orb,t,KN.step,.2);
-    if(t<1.6&&Math.random()<.55){const a=rnd(0,TAU),r=rnd(110,190);emit(K.x+Math.cos(a)*r,K.y+Math.sin(a)*r,-Math.cos(a)*r/.5,-Math.sin(a)*r/.5,.5,2.2,0,0)}
-    if(t>=2.5)setSt('transforming');break}
-  case 'transforming':K.a=1;K.s=1;K.fx=1.6;seq(SQ.trn,t,KN.step,.6);if(t>=2.5){setSt('idle');toast('THE ROARING KNIGHT')}break;
-  case 'idle':K.fx=.6;pose('idle');if(t>=3)startVacuum();break;
+  case 'appearing':{   // orb pops in with converging energy: ball1..ball5, 100 ms each
+    K.s=.6+.4*sm(t/.35);K.fx=1;K.im=anim(SQ.orb,t);
+    if(t<.4){for(let i=0;i<2;i++){const a=rnd(0,TAU),r=rnd(90,170);emit(K.x+Math.cos(a)*r,K.y+Math.sin(a)*r,-Math.cos(a)*r/.3,-Math.sin(a)*r/.3,.3,2.2,0,0)}}
+    if(animDone(SQ.orb,t))setSt('transforming');break}
+  case 'transforming':K.s=1;K.fx=1;K.im=anim(SQ.trn,t);if(animDone(SQ.trn,t)){setSt('idle');toast('THE ROARING KNIGHT')}break;
+  case 'idle':K.fx=.7;K.im=KI.idle;if(t>=3)startVacuum();break;
   case 'vacuuming':{
-    K.fx=.6;K.sx=rnd(-4,4);K.sy=rnd(-4,4);pose('r1');
+    K.fx=.7;K.sx=rnd(-4,4);K.sy+=rnd(-4,4);K.im=KI.r1;
+    if(t<K.vacT){K.racc+=dt*6.5;while(K.racc>=1){K.racc--;spawnVac()}}   // he keeps pulling in fresh cubes while he sucks
     if(Math.random()<.85){const a=rnd(0,TAU),r=rnd(240,360);emit(K.x+Math.cos(a)*r,K.y+Math.sin(a)*r,-Math.cos(a)*r/.45,-Math.sin(a)*r/.45,.45,2.4,Math.random()<.5?1:0,0)}
     let rem=0;for(let i=0;i<ON;i++)if(obs[i].on&&obs[i].k===1)rem++;
-    if(t>8&&rem){for(let i=0;i<ON;i++){const o=obs[i];if(o.on&&o.k===1){o.on=0;K.col++}}rem=0}   // safety: never get stuck
-    if(!rem&&t>.6){stopSnd(K.vac,.15);K.vac=null;setSt('spilling');K.ph=0}
+    if(t>K.vacT+6&&rem){for(let i=0;i<ON;i++){const o=obs[i];if(o.on&&o.k===1){o.on=0;K.col++}}rem=0}   // safety: never get stuck
+    if(t>=K.vacT&&!rem){stopSnd(K.vac,.15);K.vac=null;setSt('spilling');K.ph=0}
     break}
   case 'spilling':
     if(K.ph===0){   // compress
-      K.s=1-.07*sm(t/.5);K.sx=rnd(-6,6);K.sy=rnd(-6,6);K.fx=.7;pose('r1');
+      K.s=1-.07*sm(t/.5);K.sx=rnd(-6,6);K.sy+=rnd(-6,6);K.fx=.8;K.im=KI.r1;
       const a=rnd(0,TAU),r=rnd(80,170);emit(K.x+Math.cos(a)*r,K.y+Math.sin(a)*r,-Math.cos(a)*r/.2,-Math.sin(a)*r/.2,.2,2.6,1,0);
-      if(t>=.5){K.ph=1;K.t=0;K.s=1;knightSpill()}
-    }else if(K.ph===1){   // violent release: rapid roaring2 <-> roaring3
-      K.sx=rnd(-3.5,3.5);K.sy=rnd(-3.5,3.5);K.fx=1;K.hold=((t/.09)|0)&1?'r3':'r2';pose(K.hold);
-      if(t>=K.rlen){K.ph=2;K.t=0}
-    }else{   // cubes slow, split, scatter and vanish; he holds the last roar pose (no idle, no second attack)
-      seq([K.hold,'idle'],t,.4,1);K.fx=.5;
+      if(t>=.5)startRelease();
+    }else if(K.ph===1){   // violent release: cubes stream out one after another while he alternates roaring2 <-> roaring3 every 100 ms
+      K.sx=rnd(-3.5,3.5);K.sy+=rnd(-3.5,3.5);K.fx=1;K.im=((t/KN.fr)|0)&1?KI.r3:KI.r2;
+      K.racc+=dt*K.relN/3.4;while(K.racc>=1&&K.rel<K.relN){K.racc--;K.rel++;spillOne()}
+      if(t>=3.4&&K.rel>=K.relN){K.ph=2;K.t=0}
+    }else{   // cubes slow, split, scatter and vanish; he hovers in his idle pose (no second attack)
+      K.im=KI.idle;K.fx=.7;
       if((t>1&&!knightCubes())||t>14){knightClearCubes();startDeparting()}
     }
     break;
-  case 'departing':{   // mirror of the entrance: roar pose > idle > transformation3..0 > orb > ball5..ball1 > fade + shrink
-    const T1=2.5,T2=T1+2.5,T3=T2+1.3;
-    if(t<T1){seq(K.dep,t,KN.step,.6);K.a=1;K.s=1;K.fx=.7*(1-.5*t/T1)}
-    else if(t<T2){seq(SQ.orbr,t-T1,KN.step,.2);K.a=1;K.s=1;K.fx=.3}
-    else if(t<T3){const u=sm((t-T2)/1.3);pose('ball1');K.a=1-u;K.s=1-.3*u;K.fx=.3*(1-u);if(Math.random()<.5)burst(K.x+rnd(-20,20),K.y+rnd(-20,20),1,90,.5,2,0,3)}
-    else{K.a=0;K.fx=0;if(!shardsLive()||t>T3+1.6)knightFinish()}
+  case 'departing':{   // idle > transformation3..0 > ball5..ball1, 100 ms each, then he simply vanishes
+    const T=SQ.dep.length*KN.fr;
+    if(t<T){K.im=anim(SQ.dep,t);K.fx=.6*(1-t/T)}
+    else{K.im=null;K.fx=0;if(!ghLive()||t>T+1)knightFinish()}
     break}
   }
-  if(K.on)stepShards(dt);
+  if(K.on)stepGhosts(dt);
 }
 
 /* ================= FLOW ================= */
@@ -702,7 +684,7 @@ function drawPlayer(){
     ctx.restore();A(1)}
 }
 function render(){
-  const fit=Math.min(1,vw*.95/((AW+380)*scale)),z=(scale*cam.z+cam.zk*scale)*(1-K.fr*(1-fit)),cx=vw/2-K.fr*190*z,cy=vh*.545,sh=G.tr*G.tr*24,
+  const fit=Math.min(1,vw*.95/((AW+490)*scale)),z=(scale*cam.z+cam.zk*scale)*(1-K.fr*(1-fit)),cx=vw/2-K.fr*245*z,cy=vh*.545,sh=G.tr*G.tr*24,
     shx=(Math.sin(clock*67)+Math.sin(clock*41+2))*.5*sh,shy=(Math.sin(clock*59+1)+Math.sin(clock*47))*.5*sh;
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalCompositeOperation='source-over';A(1);
   ctx.fillStyle='#050506';ctx.fillRect(0,0,vw,vh);
