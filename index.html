@@ -202,6 +202,37 @@ body.touch.port #rot{display:block}
  .stats span{font-size:11px}
 }
 
+/* ---------- gravity bridge: stamina + corner feed ---------- */
+#stamw{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 1.8vh);transform:translateX(-50%);display:none;align-items:center;gap:14px}
+#stamw.on{display:flex}
+#staml{font-size:20px;font-weight:700;letter-spacing:.08em;color:rgba(150,255,190,.85)}
+#stamb{display:block;width:min(330px,28vw);height:16px;background:rgba(255,255,255,.09);transform:skewX(-20deg);overflow:hidden;box-shadow:0 0 16px rgba(96,255,150,.14)}
+#stamf{display:block;height:100%;width:100%;transform-origin:left;background:linear-gradient(90deg,#55e58c,#b9ffcf);box-shadow:0 0 14px rgba(120,255,170,.6);transition:background .3s}
+#stamv{min-width:2.6ch;font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:#dcffe6}
+#stamw.low #stamf{background:linear-gradient(90deg,#e5b155,#ffd9a0)}
+#stamw.crit #stamf{background:linear-gradient(90deg,#ff3a2a,#ff9a8a);animation:stampulse .5s ease-in-out infinite}
+#stamw.crit #stamv{color:#ff6a5a}
+@keyframes stampulse{50%{filter:brightness(2)}}
+
+#vfeed{position:fixed;right:max(2.4vw,16px);top:50%;z-index:3;width:min(206px,17vw);pointer-events:none;
+ opacity:0;visibility:hidden;transform:translateY(-50%) scale(.92);
+ transition:opacity .55s var(--ease),transform .55s var(--ease),visibility 0s linear .55s}
+#vfeed.on{opacity:1;visibility:visible;transform:translateY(-50%) scale(1);transition-delay:0s}
+#vfin{position:relative;width:100%;aspect-ratio:854/720;overflow:hidden;border-radius:10px;background:#0a1410;
+ border:1px solid rgba(140,255,185,.45);box-shadow:0 0 30px rgba(96,255,150,.2),inset 0 0 24px rgba(96,255,150,.12)}
+#vfin::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:10px;
+ background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,rgba(0,0,0,0) 1px 3px),radial-gradient(closest-side,rgba(0,0,0,0) 55%,rgba(0,0,0,.45))}
+#vfv,#vfc{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+#vfeed>span{display:block;margin-top:7px;font-size:11px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:rgba(150,255,190,.72);text-align:center}
+body.touch #stamw{bottom:auto;top:calc(var(--arb) + 10px)}
+body.touch:not(.port) #vfeed{width:min(128px,13.5vw);right:max(1.4vw,9px)}
+body.touch:not(.port) #stamb{width:38vw;height:10px}
+body.touch:not(.port) #stamv{font-size:18px}
+body.touch:not(.port) #staml{font-size:14px}
+body.touch.port #vfeed{right:max(3vw,14px);top:calc(var(--arb) + 58px);bottom:auto;transform:scale(.92);width:min(108px,27vw)}
+body.touch.port #vfeed.on{transform:scale(1)}
+@media (max-width:720px){#stamb{width:54vw;height:13px}#stamv{font-size:23px}#staml{font-size:16px}}
+
 /* ---------- install sheet (iOS, which has no install prompt) ---------- */
 #ios{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:26px;background:rgba(5,5,6,.97);backdrop-filter:blur(8px);opacity:0;visibility:hidden;transition:opacity .3s var(--ease),visibility 0s linear .3s}
 #ios.on{opacity:1;visibility:visible;transition-delay:0s}
@@ -221,7 +252,9 @@ body.touch.port #rot{display:block}
  <div id="banner"><div id="bt"></div><i id="bl"></i><div id="bs"></div></div>
  <div id="foot"><div id="ups"></div><div id="tp"><span id="key">Space</span><span id="tpl">TP</span><div id="cells"></div><span id="tpv">0</span></div><div></div></div>
  <div id="touch"><div id="stick"><i id="nub"></i></div><div id="fireb"><span id="firel">FIRE</span></div></div>
+ <div id="stamw"><span id="staml">Stamina</span><span id="stamb"><i id="stamf"></i></span><span id="stamv">100</span></div>
 </div>
+<div id="vfeed"><div id="vfin"><video id="vfv" muted loop playsinline preload="auto"></video><canvas id="vfc"></canvas></div><span>Feed</span></div>
 
 <div id="menu" class="scr">
  <div id="cube3d"><div id="cg"></div><div id="cbx"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i><i class="g"></i></div></div>
@@ -347,7 +380,8 @@ function land(){P.qx=.24;P.qy=-.3;P.qxv=P.qyv=0;burst(P.x,P.y,18,280,.55,3,0,3.5
 function stepPlayer(dt){
   if(!P.alive)return;
   if(P.drop>0){P.drop-=dt/.45;if(P.drop<=0){P.drop=0;land()}}
-  let ax=0,ay=0;if(G.state==='play'){ax=(keys.r|0)-(keys.l|0);ay=(keys.d|0)-(keys.u|0);if(tmv>=0){ax=tax;ay=tay}}else if(G.state==='menu'){demoAI(dt);ax=dax;ay=day}
+  let ax=0,ay=0;if(G.state==='play'){ax=(keys.r|0)-(keys.l|0);ay=(keys.d|0)-(keys.u|0);if(tmv>=0){ax=tax;ay=tay}
+    if(BR.on&&BR.st!=='cross'){ax=0;ay=0}}else if(G.state==='menu'){demoAI(dt);ax=dax;ay=day}
   const l=Math.hypot(ax,ay);if(l>1){ax/=l;ay/=l}
   const sp0=Math.hypot(P.vx,P.vy);P.cd-=dt;
   // sharp direction change: stretch along new heading + small puff
@@ -462,9 +496,10 @@ function drawText(){
     ctx.font='700 '+f.s+'px '+FF;A(a);ctx.fillStyle=f.c;ctx.save();ctx.translate(f.x,f.y);ctx.scale(k,k);ctx.fillText(f.t,0,0);ctx.restore()}
   ctx.restore();A(1);
 }
-function resetArm(){for(const k in U)U[k]=0;for(let i=0;i<BN;i++)bul[i].on=0;for(let i=0;i<PKN;i++)pks[i].on=0;knightReset();aquaReset();lavaPreload();lavaSound(false);clearHaz();F.on=false;F.la=0;setKeyLabel(0);P.z=P.jt=0;fireCd=0;P.inv=0;P.gl=P.tk=0;gt=0;tpi=-1;tmSec=-1;thrLv=0;upsHud()}
+function resetArm(){for(const k in U)U[k]=0;for(let i=0;i<BN;i++)bul[i].on=0;for(let i=0;i<PKN;i++)pks[i].on=0;knightReset();aquaReset();bridgeReset();lavaPreload();lavaSound(false);clearHaz();F.on=false;F.la=0;setKeyLabel(0);P.z=P.jt=0;fireCd=0;P.inv=0;P.gl=P.tk=0;gt=0;tpi=-1;tmSec=-1;thrLv=0;upsHud()}
 function fireBullet(x,y,a,d,p){for(let i=0;i<BN;i++){const b=bul[i];if(b.on)continue;b.on=1;b.x=x;b.y=y;b.vx=Math.cos(a)*900;b.vy=Math.sin(a)*900;b.l=1.4;b.d=d;b.p=p;return}}
 function stepShoot(dt){
+  if(BR.on)return;                                        // the fire key is the Quick Embrace input here
   fireCd-=dt;
   if(!P.alive||(G.state!=='play'&&G.state!=='menu')||P.drop>0||!(keys.f||G.state==='menu')||F.on||fireCd>0||G.tp<COST)return;
   let bd=760,bo=null;                                      // auto-aim: nearest visible cube or live knife, with target lead
@@ -800,13 +835,14 @@ function startEv(){
   const k=G.fForce?'floor'
          :(G.kForce||(!G.knightDone&&G.t>28))?'knight'
          :(G.qForce||(G.knightDone&&!G.aquaDone&&G.t>95))?'aqua'
+         :(G.bForce||(G.aquaDone&&!G.bridgeDone&&G.t>170))?'bridge'
          :['floor','barrage','storm'][(Math.random()*3)|0];
   G.fForce=false;
-  const solo=k==='knight'||k==='aqua';                    // the two boss encounters announce themselves
+  const solo=k==='knight'||k==='aqua'||k==='bridge';       // the set-piece encounters announce themselves
   G.ev=k;F.t=0;F.c=.5;F.n=0;
   if(k==='knight'){for(let i=0;i<HN;i++)hl[i].on=0}else{clearHaz();for(let i=0;i<ON;i++){const o=obs[i];if(o.on){burst(o.x,o.y,8,220,.5,3,1,3);o.on=0}}}
   if(!solo){toast(k==='floor'?'Floor collapse':k==='barrage'?'Barrage':'Laser storm',k==='floor'?(TOUCH?'Tap right to jump':'Space to jump'):k==='barrage'?'Keep moving':'Watch the lines');sfx.event();shake(.45);G.fl=Math.max(G.fl,.12);G.fc=0}
-  if(k==='floor')buildFloor();if(k==='knight')startKnight();if(k==='aqua')startAqua();
+  if(k==='floor')buildFloor();if(k==='knight')startKnight();if(k==='aqua')startAqua();if(k==='bridge')startBridge();
 }
 function endEv(){G.ev=null;G.evT=lerp(42,30,G.diff);G.next=1.4;G.tp=Math.min(100,G.tp+50);G.upT=Math.min(G.upT,.6);toast('Survived','+50 TP');sfx.up()}
 function stepEv(dt){
@@ -817,6 +853,7 @@ function stepEv(dt){
   else if(G.ev==='barrage'){F.c-=dt;if(F.c<=0){F.c=lerp(.34,.22,G.diff);const a=F.n++%3===0;zone(0,a?clamp(P.x+rnd(-30,30),60,AW-60):rnd(70,AW-70),a?clamp(P.y+rnd(-30,30),60,AH-60):rnd(70,AH-70),.85,58,0)}if(F.t>7.5)endEv()}
   else if(G.ev==='knight')stepKnight(dt);
   else if(G.ev==='aqua')stepAqua(dt);
+  else if(G.ev==='bridge')stepBridge(dt);
   else{F.c-=dt;if(F.c<=0){F.c=lerp(.55,.4,G.diff);beam(P.x+rnd(-120,120),P.y+rnd(-120,120),rnd(0,Math.PI),.95,22,.45);sfx.warn()}if(F.t>7)endEv()}
 }
 Object.assign(sfx,{event(){noise(.6,.3,500);tone(70,.7,'sawtooth',.1,35)},crack(){noise(.3,.3,1800);tone(160,.25,'square',.04,60)},jump(){tone(330,.18,'sine',.07,660)}});
@@ -1292,9 +1329,447 @@ iosEl.addEventListener('click',()=>iosEl.classList.remove('on'));
 if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))
   addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
+
+/* ================= THE GRAVITY BRIDGE (one-time encounter) ================= */
+// Runs as the 'bridge' super event. A span of gravitational energy assembles across the void and
+// the player has to walk its length while a crushing downforce drags them toward the lower edge
+// and a gale blows right-to-left, back toward where they started. No jumping, no shooting: the
+// fire key is the Quick Embrace input. Stamina is the only way to die here.
+//
+// Modular on purpose — everything lives behind BR.* and the five entry points
+// (startBridge / stepBridge / drawBridge / drawBridgeFore / drawPlayerEnergy).
+const glowG=glow('96,255,150'),glowA=glow('255,176,86');       // energy green, and the warm haze behind it
+const DECK={cy:AH*.56,h0:170,h1:112};                           // deck half-height, start -> end
+const BSEC=[   // wind, gravity, deck tightness, energy, name
+  {w:1.00,g:1.00,d:0.00,e:.55,n:'The span forms'},
+  {w:1.28,g:1.22,d:0.22,e:.70,n:'Heavier'},
+  {w:1.55,g:1.45,d:0.48,e:.85,n:'Unstable'},
+  {w:1.82,g:1.68,d:0.76,e:1.00,n:'It will not hold'},
+  {w:2.05,g:1.88,d:1.00,e:1.20,n:'The far side'}
+];
+const BSEG=[0,.2,.4,.6,.85,1.01];                               // prog boundaries for those five
+const QEAT=[.10,.22,.34,.46,.58,.70,.81,.91];                           // where a Quick Embrace is waiting
+const WSPD=168,GSPD=150,PRATE=.040;                             // wind drift, gravity drift, crossing rate
+const BR={on:false,st:'gone',t:0,prog:0,stam:100,sect:-1,w:1,g:1,en:.55,
+  gust:0,gustT:3,qe:null,qi:0,low:0,warn:0,flash:0,push:0,off:0,
+  dust:[],deb:[],rib:[],aura:[],trail:[],hum:null,wind:null,done:false};
+for(let i=0;i<70;i++)BR.dust.push({x:rnd(0,AW),y:rnd(0,AH),z:rnd(.3,1),s:rnd(1,3)});
+for(let i=0;i<26;i++)BR.deb.push({x:rnd(0,AW),y:rnd(0,AH),vy:0,r:rnd(0,TAU),vr:rnd(-2,2),s:rnd(5,16),z:rnd(.45,1)});
+for(let i=0;i<34;i++)BR.aura.push({a:rnd(0,TAU),r:rnd(16,46),sp:rnd(.6,2.4)*(Math.random()<.5?1:-1),ph:rnd(0,TAU),s:rnd(1.4,3.4)});
+for(let i=0;i<14;i++)BR.trail.push({x:0,y:0,l:0});
+const deckH=()=>lerp(DECK.h0,DECK.h1,BR.sect<0?0:BSEC[BR.sect].d);
+const deckTop=()=>DECK.cy-deckH(),deckBot=()=>DECK.cy+deckH();
+
+/* --- procedural ambience: a wind bed and a gravity drone, both through the master gain --- */
+function noiseBuf(sec){const n=AC.sampleRate*sec|0,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);
+  let v=0;for(let i=0;i<n;i++){v=(v*.94)+(Math.random()*2-1)*.06;d[i]=v*3.2}
+  const f=(AC.sampleRate*.25)|0;for(let i=0;i<f;i++){const k=i/f;d[i]=d[i]*k+d[n-f+i]*(1-k)}   // seam blend
+  return b}
+function bridgeAudioStart(){
+  if(!AC||BR.wind)return;
+  try{
+    const s=AC.createBufferSource(),bp=AC.createBiquadFilter(),g=AC.createGain();
+    s.buffer=noiseBuf(3);s.loop=true;bp.type='bandpass';bp.frequency.value=620;bp.Q.value=.6;
+    g.gain.value=0;s.connect(bp);bp.connect(g);g.connect(master);s.start();
+    BR.wind={s,g,f:bp};
+    const o=AC.createOscillator(),o2=AC.createOscillator(),g2=AC.createGain();
+    o.type='sine';o.frequency.value=34;o2.type='sine';o2.frequency.value=51;
+    g2.gain.value=0;o.connect(g2);o2.connect(g2);g2.connect(master);o.start();o2.start();
+    BR.hum={s:o,s2:o2,g:g2};
+  }catch(e){}
+}
+function bridgeAudioStop(){
+  if(BR.wind){try{BR.wind.g.gain.cancelScheduledValues(AC.currentTime);BR.wind.g.gain.linearRampToValueAtTime(0,AC.currentTime+.5);BR.wind.s.stop(AC.currentTime+.6)}catch(e){}BR.wind=null}
+  if(BR.hum){try{BR.hum.g.gain.cancelScheduledValues(AC.currentTime);BR.hum.g.gain.linearRampToValueAtTime(0,AC.currentTime+.5);BR.hum.s.stop(AC.currentTime+.6);BR.hum.s2.stop(AC.currentTime+.6)}catch(e){}BR.hum=null}
+}
+function bridgeAudioLevel(wind,grav){
+  if(BR.wind){BR.wind.g.gain.value=wind*.07;BR.wind.f.frequency.value=480+wind*340}
+  if(BR.hum)BR.hum.g.gain.value=grav*.05;
+}
+
+/* --- lifecycle --- */
+function startBridge(){
+  G.bForce=false;BR.on=true;BR.t=0;BR.prog=0;BR.stam=100;BR.sect=-1;BR.qe=null;BR.qi=0;
+  BR.gust=0;BR.gustT=4;BR.low=0;BR.warn=0;BR.flash=0;BR.push=0;BR.off=0;BR.w=1;BR.g=1;BR.en=0;
+  for(let i=0;i<BR.trail.length;i++)BR.trail[i].l=0;
+  BR.rib.length=0;for(let i=0;i<16;i++)BR.rib.push({p:i/16,on:0});
+  BR.st='intro';P.inv=99;P.z=0;P.jt=0;                              // nothing else can touch the player here
+  Object.assign(P,{x:AW*.22,y:DECK.cy,vx:0,vy:0});
+  stamHud(true);feedShow(true);bridgeAudioStart();
+  toast('The Gravity Bridge','Cross it');nameplate(true,'The Gravity Bridge');
+  shake(.5);G.fl=Math.max(G.fl,.2);G.fc=0;slow(.5,.3);sfx.bform();
+}
+function bridgeEnd(){
+  BR.on=false;BR.st='gone';P.inv=0;G.bridgeDone=true;
+  stamHud(false);feedShow(false);bridgeAudioStop();nameplate(false);endEv();
+}
+function bridgeAbort(){   // the run ended some other way
+  if(!BR.on)return;BR.on=false;BR.st='gone';P.inv=0;
+  stamHud(false);feedShow(false);bridgeAudioStop();nameplate(false);
+}
+function bridgeReset(){
+  BR.on=false;BR.st='gone';BR.prog=0;BR.stam=100;BR.qe=null;
+  stamHud(false);feedShow(false);bridgeAudioStop();G.bridgeDone=false;G.bForce=false;
+}
+
+/* --- Quick Embrace: a ring collapses onto a target band, hit FIRE inside it --- */
+function qeStart(){
+  BR.qe={t:0,dur:lerp(1.5,1.12,BR.prog),res:0,ht:0};
+  sfx.qecall();G.fl=Math.max(G.fl,.05);G.fc=0;
+}
+function qeResolve(ok){
+  const q=BR.qe;q.res=ok?1:-1;q.ht=0;
+  if(ok){BR.stam=Math.min(100,BR.stam+34);BR.flash=Math.max(BR.flash,.5);shake(.3);slow(.16,.38);
+    for(let i=0;i<34;i++){const a=i/34*TAU;emit(P.x,P.y,Math.cos(a)*420,Math.sin(a)*420,.7,3.4,2,3.2)}
+    popText(P.x,P.y-48,'+34','#8dffa0',27);sfx.qeok()}
+  else{BR.stam=Math.max(0,BR.stam-12);BR.gust=1.6;shake(.22);
+    burst(P.x,P.y,14,260,.5,3,1,3);popText(P.x,P.y-44,'-12','#ff6a66',22);sfx.qebad()}
+}
+function stepQE(dt){
+  const q=BR.qe;if(!q)return;
+  if(q.res){q.ht+=dt;if(q.ht>.55)BR.qe=null;return}
+  q.t+=dt;
+  const r=1-q.t/q.dur;
+  if(keys.f&&!BR.pf)qeResolve(r<.30&&r>.07);                      // the target band
+  else if(q.t>=q.dur)qeResolve(false);
+}
+
+/* --- the crossing --- */
+function stepBridge(dt){
+  if(!BR.on)return;
+  BR.t+=dt;
+  const sect=Math.max(0,BSEG.findIndex((v,i)=>BR.prog>=v&&BR.prog<BSEG[i+1]));
+  if(BR.st==='cross'&&sect!==BR.sect){BR.sect=sect;const S=BSEC[sect];
+    if(sect>0){toast('Section '+(sect+1),S.n);shake(.3);G.fl=Math.max(G.fl,.08);G.fc=0;sfx.bsect()}}
+  const S=BSEC[BR.sect<0?0:BR.sect];
+  const ramp=BR.st==='intro'?clamp((BR.t-1.6)/1.4,0,1):BR.st==='cross'?1:BR.st==='win'?Math.max(0,1-BR.t/.9):1;
+  BR.w=S.w*ramp*(1+BR.gust*.45);BR.g=S.g*ramp;BR.en=S.e*(BR.st==='intro'?clamp(BR.t/2.2,0,1):1);
+  bridgeAudioLevel(BR.w,BR.g);
+  if(BR.gust>0)BR.gust=Math.max(0,BR.gust-dt*.8);
+
+  switch(BR.st){
+  case 'intro':{   // the span assembles rib by rib out of the void, then hands over control
+    const u=clamp(BR.t/2.6,0,1);
+    for(let i=0;i<BR.rib.length;i++)BR.rib[i].on=clamp((u*1.5-Math.abs(BR.rib[i].p-.5)*1.3)*3,0,1);
+    G.tr=Math.max(G.tr,.1+.22*(1-u));
+    if(BR.t>1.1&&BR.t<1.2){shake(.45);G.fl=Math.max(G.fl,.16);G.fc=0;sfx.bsnap()}
+    if(BR.t>=3.1){BR.st='cross';BR.sect=-1;BR.flash=.5;shake(.35);sfx.bgo()}
+    break}
+  case 'cross':{
+    // environment drags: applied as drift after the player's own movement, so input stays crisp
+    const wind=BR.w*WSPD,grav=BR.g*GSPD;
+    P.x-=wind*dt;P.y+=grav*dt;
+    const dt_=deckTop(),db=deckBot();
+    if(P.y<dt_){P.y=dt_;P.vy=Math.max(P.vy,0)}                    // the upwind rail is solid, not a hazard
+    BR.off=P.y>db?Math.min(1,(P.y-db)/72):0;                      // only the downhill edge is a fall
+    if(BR.off>0)P.y-=BR.off*70*dt;                                // the field claws you back toward the deck
+    if(P.y>db+80){P.y=db+80;P.vy=Math.min(P.vy,0)}
+    P.x=clamp(P.x,46,AW-46);
+    // progress: standing to the right of the line gains ground, being blown left loses it
+    BR.push=clamp((P.x-AW*.30)/(AW*.34),-1,1);
+    BR.prog=clamp(BR.prog+(BR.push>0?BR.push*PRATE:BR.push*PRATE*.55)*dt,0,1);
+    // stamina
+    let drain=lerp(2.0,3.6,BR.prog)+(keys.r||(tmv>=0&&tax>.25)?1.8:0)+BR.off*7;
+    if(!keys.r&&tax<=.25&&BR.off<.05)drain-=4.0;                  // easing off is a real breather
+    BR.stam=clamp(BR.stam-drain*dt,0,100);
+    if(BR.stam<28){BR.low+=dt;if(BR.low>.75){BR.low=0;sfx.stamlow()}}else BR.low=0;
+    // quick embrace checkpoints
+    if(!BR.qe&&BR.qi<QEAT.length&&BR.prog>=QEAT[BR.qi]){BR.qi++;qeStart()}
+    stepQE(dt);
+    G.tr=Math.max(G.tr,.06+.12*BR.g*(1+BR.gust));
+    if(BR.gustT-=dt,BR.gustT<=0){BR.gustT=lerp(6.5,4,BR.prog);BR.gust=1.1;sfx.gust();shake(.2)}
+    if(BR.stam<=0){BR.st='fail';BR.t=0;shake(.8);G.fl=Math.max(G.fl,.3);G.fc=0;slow(1,.22);sfx.bfail()}
+    else if(BR.prog>=1){BR.st='win';BR.t=0;BR.qe=null;shake(.7);BR.flash=1;slow(.8,.3);sfx.bwin()}
+    break}
+  case 'win':{     // gravity lets go, the wind dies, the span lights end to end
+    const u=clamp(BR.t/2.8,0,1);
+    P.x+=260*dt*(1-u);P.y=damp(P.y,DECK.cy,3,dt);
+    if(BR.t<.1)for(let i=0;i<70;i++){const a=rnd(0,TAU),v=rnd(260,760);emit(P.x,P.y,Math.cos(a)*v,Math.sin(a)*v,1.1,4,2,1.6)}
+    if(BR.t>1.5&&BR.t<1.56){G.fl=Math.max(G.fl,.5);G.fc=0;shake(.4)}
+    if(u>=1){bridgeEnd();return}
+    break}
+  default:{        // fail: the energy implodes and the gravity finishes the job
+    const u=clamp(BR.t/1.5,0,1);
+    P.y+=240*dt*u;P.qx=.3*u;P.qy=-.45*u;P.qxv=P.qyv=0;
+    G.tr=Math.max(G.tr,.3+.4*u);
+    if(BR.t<.08)for(let i=0;i<46;i++){const a=rnd(0,TAU),q=rnd(90,220);emit(P.x+Math.cos(a)*q,P.y+Math.sin(a)*q,-Math.cos(a)*q*3.4,-Math.sin(a)*q*3.4,.55,3.4,2,1.2)}
+    if(u>=1){bridgeAbort();die();return}
+    break}
+  }
+  BR.pf=!!keys.f;
+  BR.flash=Math.max(0,BR.flash-dt*2.2);
+  // trail + aura particles
+  const tr=BR.trail[(BR.t*22|0)%BR.trail.length];tr.x=P.x;tr.y=P.y;tr.l=.42;
+  for(let i=0;i<BR.trail.length;i++)if(BR.trail[i].l>0)BR.trail[i].l-=dt;
+  // world motes blown leftward and pressed down
+  for(let i=0;i<BR.dust.length;i++){const d=BR.dust[i];
+    d.x-=(140+BR.w*230)*d.z*dt;d.y+=BR.g*34*d.z*dt;
+    if(d.x<-20){d.x=AW+20;d.y=rnd(0,AH)}if(d.y>AH+20)d.y=-20}
+  for(let i=0;i<BR.deb.length;i++){const b=BR.deb[i];
+    b.x-=(90+BR.w*300)*b.z*dt;b.vy=Math.min(b.vy+BR.g*150*dt,BR.g*170);b.y+=b.vy*dt;b.r+=b.vr*dt;
+    if(b.x<-40||b.y>AH+40){b.x=AW+rnd(10,120);b.y=rnd(-30,AH*.7);b.vy=0}}
+  stamHud();
+}
+
+/* --- drawing: the span, built to the sketch. Towers and a sagging main cable carry a dark deck
+   across a warm amber haze; the green is kept for the energy coming off the player, the way the
+   reference frames hold the character as a silhouette with the glow streaming off them. --- */
+const SPAN=620,TOWH=140;
+function drawBridge(){
+  const dt_=deckTop(),db=deckBot(),en=BR.en,sc=BR.prog*3400;
+  ctx.save();rr(0,0,AW,AH,26);ctx.clip();
+  // amber atmosphere: brightest in a band behind the span, falling away above and below
+  let g=ctx.createLinearGradient(0,0,0,AH);
+  g.addColorStop(0,'#2a1a0b');g.addColorStop(.26,'#6b4418');g.addColorStop(.46,'#b8803c');
+  g.addColorStop(.62,'#8a5a26');g.addColorStop(1,'#1d1208');
+  A(1);ctx.fillStyle=g;ctx.fillRect(0,0,AW,AH);
+  ctx.globalCompositeOperation='lighter';
+  for(let k=0;k<6;k++){const r=260+110*Math.sin(clock*.33+k*1.2);A(.1+.05*Math.sin(clock*.8+k));
+    ctx.drawImage(glowA,AW*(.5+.54*Math.sin(clock*.12+k*2.3))-r,AH*(.42+.3*Math.cos(clock*.1+k*1.5))-r,r*2,r*2)}
+  ctx.globalCompositeOperation='source-over';
+
+  // --- suspension: towers, main cable, hangers; all of it scrolling as ground is gained ---
+  const off=sc%SPAN,n=Math.ceil(AW/SPAN)+2;
+  ctx.lineCap='round';
+  for(let i=-1;i<n;i++){
+    const tx=i*SPAN-off,nx=tx+SPAN,top=dt_-TOWH;
+    // main cable sagging between this tower and the next
+    ctx.strokeStyle='rgba(14,9,5,.95)';ctx.lineWidth=7;
+    ctx.beginPath();ctx.moveTo(tx,top);ctx.quadraticCurveTo(tx+SPAN/2,dt_+14,nx,top);ctx.stroke();
+    ctx.strokeStyle='rgba(140,255,185,'+(.14+.32*en)+')';ctx.lineWidth=2.1;   // energy running the cable
+    ctx.beginPath();ctx.moveTo(tx,top);ctx.quadraticCurveTo(tx+SPAN/2,dt_+14,nx,top);ctx.stroke();
+    // hangers dropping from the cable to the deck
+    ctx.strokeStyle='rgba(16,10,6,.75)';ctx.lineWidth=2.2;ctx.beginPath();
+    for(let h=1;h<9;h++){const u=h/9,hx=tx+SPAN*u,
+      hy=(1-u)*(1-u)*top+2*(1-u)*u*(dt_+14)+u*u*top;
+      if(hx<-20||hx>AW+20)continue;ctx.moveTo(hx,hy);ctx.lineTo(hx,dt_)}
+    ctx.stroke();
+    // the tower itself
+    if(tx>-90&&tx<AW+90){
+      ctx.fillStyle='rgba(12,8,5,.95)';ctx.fillRect(tx-11,top-26,22,db-top+70);
+      ctx.fillStyle='rgba(222,160,86,.5)';ctx.fillRect(tx-11,top-26,3,db-top+70);
+      ctx.fillStyle='rgba(12,8,5,.95)';ctx.fillRect(tx-34,top+34,68,13);
+      A(.3*en);ctx.globalCompositeOperation='lighter';
+      ctx.drawImage(glowG,tx-70,top-80,140,140);ctx.globalCompositeOperation='source-over';A(1)}
+  }
+
+  // --- the deck: a dark slab in warm light, seen just off level so it has a walkable face ---
+  g=ctx.createLinearGradient(0,dt_,0,db);
+  g.addColorStop(0,'#241710');g.addColorStop(.34,'#120b07');g.addColorStop(1,'#080504');
+  ctx.fillStyle=g;ctx.fillRect(0,dt_,AW,db-dt_);
+  // plating running away down the span
+  ctx.strokeStyle='rgba(224,164,92,.12)';ctx.lineWidth=1.3;ctx.beginPath();
+  for(let x=-((sc*.8)%86);x<AW+86;x+=86){ctx.moveTo(x,dt_);ctx.lineTo(x+22,db)}
+  ctx.stroke();
+  ctx.strokeStyle='rgba(224,164,92,.07)';ctx.lineWidth=1;ctx.beginPath();
+  for(let k=1;k<4;k++){const y=dt_+(db-dt_)*k/4;ctx.moveTo(0,y);ctx.lineTo(AW,y)}
+  ctx.stroke();
+  // the lit far rail and the near edge you can fall from
+  ctx.strokeStyle='rgba(248,196,124,.92)';ctx.lineWidth=2.6;
+  ctx.beginPath();ctx.moveTo(0,dt_);ctx.lineTo(AW,dt_);ctx.stroke();
+  ctx.globalCompositeOperation='lighter';A(.5);ctx.drawImage(glowA,-100,dt_-74,AW+200,148);
+  ctx.globalCompositeOperation='source-over';A(1);
+  ctx.strokeStyle='rgba(255,226,180,.5)';ctx.lineWidth=1.1;
+  ctx.beginPath();ctx.moveTo(0,dt_-4);ctx.lineTo(AW,dt_-4);ctx.stroke();
+  ctx.strokeStyle='rgba(150,255,195,'+(.3+.45*en)+')';ctx.lineWidth=2.4;   // the near edge, lit green: the drop
+  ctx.beginPath();ctx.moveTo(0,db);ctx.lineTo(AW,db);ctx.stroke();
+  ctx.globalCompositeOperation='lighter';A(.22+.3*en);ctx.drawImage(glowG,-100,db-60,AW+200,120);
+  ctx.globalCompositeOperation='source-over';A(1);
+  // under-deck trusses falling into the dark
+  ctx.strokeStyle='rgba(10,7,4,.8)';ctx.lineWidth=2;ctx.beginPath();
+  for(let x=-((sc*.8)%104);x<AW+104;x+=104){ctx.moveTo(x,db);ctx.lineTo(x+30,db+40);ctx.moveTo(x+60,db);ctx.lineTo(x+30,db+40)}
+  ctx.stroke();
+  ctx.restore();
+}
+/* --- drawing: wind, debris and the far side, all over the top of the player --- */
+function drawBridgeFore(){
+  const dt_=deckTop(),db=deckBot();
+  ctx.save();rr(0,0,AW,AH,26);ctx.clip();
+  ctx.globalCompositeOperation='lighter';
+  // debris torn loose and carried off down the span
+  for(let i=0;i<BR.deb.length;i++){const b=BR.deb[i],s=b.s*b.z;
+    A(.14+.3*b.z);ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.r);
+    ctx.fillStyle='rgba(92,58,28,.9)';ctx.fillRect(-s/2,-s/2,s,s);
+    ctx.strokeStyle='rgba(248,196,124,.5)';ctx.lineWidth=1.1;ctx.strokeRect(-s/2,-s/2,s,s);ctx.restore()}
+  // the gale: long amber streaks running right to left across the whole frame
+  const n=30+(BR.w*26|0);
+  for(let i=0;i<n;i++){
+    const sd=i*127.1,q=((clock*(.46+BR.w*.54)+((sd*.0137)%1))%1),
+      y=((sd*.0391)%1)*AH,x=AW+180-q*(AW+360),
+      L=90+BR.w*165*(.4+((sd*.0071)%1)),near=y>dt_-30&&y<db+30;
+    A((.07+.26*BR.w)*Math.sin(q*Math.PI)*(.45+.55*((sd*.0213)%1))*(near?.7:1));
+    ctx.strokeStyle=near?'rgba(255,214,160,1)':'rgba(255,176,96,1)';
+    ctx.lineWidth=.9+1.6*((sd*.0053)%1);
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+L,y+BR.g*4);ctx.stroke()}
+  // fine motes
+  for(let i=0;i<BR.dust.length;i++){const d=BR.dust[i];
+    A(.12+.4*d.z);ctx.fillStyle=d.y>dt_&&d.y<db?'rgba(180,255,205,1)':'rgba(255,196,130,1)';
+    ctx.fillRect(d.x,d.y,d.s*d.z*2.4,d.s*d.z)}
+  ctx.globalCompositeOperation='source-over';A(1);
+  ctx.restore();
+  // the far side, once it comes into view
+  if(BR.prog>.84&&BR.st!=='fail'){
+    const u=(BR.prog-.84)/.16,x=AW-20-u*70;
+    ctx.save();rr(0,0,AW,AH,26);ctx.clip();ctx.globalCompositeOperation='lighter';
+    A(.14+.3*u);ctx.drawImage(glowA,x-190,AH/2-230,380,460);
+    A(.12+.3*u);ctx.drawImage(glowG,x-120,deckTop()-130,240,360);
+    ctx.strokeStyle='rgba(255,236,196,'+(.45+.5*u)+')';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(x,deckTop()-TOWH-20);ctx.lineTo(x,deckBot()+60);ctx.stroke();
+    ctx.globalCompositeOperation='source-over';A(1);ctx.restore()}
+  // quick embrace ring, drawn last so it is never buried
+  const q=BR.qe;
+  if(q){
+    const r0=112,rt=r0*.30,rb=r0*.07;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    if(!q.res){
+      const r=1-q.t/q.dur,cr=r0*r;
+      ctx.strokeStyle='rgba(150,255,185,.9)';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(P.x,P.y,rt,0,TAU);ctx.stroke();
+      A(.35);ctx.lineWidth=rt-rb;ctx.strokeStyle='rgba(120,255,170,.5)';
+      ctx.beginPath();ctx.arc(P.x,P.y,(rt+rb)/2,0,TAU);ctx.stroke();
+      A(1);ctx.strokeStyle='rgba(255,246,228,.95)';ctx.lineWidth=3.4;
+      ctx.beginPath();ctx.arc(P.x,P.y,cr,0,TAU);ctx.stroke();
+      A(.5);ctx.drawImage(glowG,P.x-cr-30,P.y-cr-30,(cr+30)*2,(cr+30)*2);
+      ctx.globalCompositeOperation='source-over';A(1);
+      ctx.font='700 17px '+FF;ctx.textAlign='center';ctx.fillStyle='#e8ffee';
+      ctx.fillText(TOUCH?'TAP':'SPACE',P.x,P.y-r0-18);
+    }else{
+      const u=q.ht/.55;A(1-u);
+      ctx.strokeStyle=q.res>0?'rgba(150,255,185,1)':'rgba(255,120,80,1)';ctx.lineWidth=5*(1-u);
+      ctx.beginPath();ctx.arc(P.x,P.y,rt+u*110,0,TAU);ctx.stroke();
+      ctx.globalCompositeOperation='source-over';A(1)}
+    ctx.restore()}
+  // golden blowout on the big beats, the way the reference frames wash out at peak
+  if(BR.flash>.004){A(BR.flash*.4);ctx.fillStyle='#ffeec4';ctx.fillRect(0,0,AW,AH);A(1)}
+}
+/* --- the energy wrapped around the player --- */
+function drawPlayerEnergy(){
+  const en=BR.en,wx=-BR.w*.5;                                     // everything leans into the wind
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<BR.trail.length;i++){const t=BR.trail[i];if(t.l<=0)continue;
+    A(.3*(t.l/.42)*en);ctx.drawImage(glowG,t.x-44,t.y-44,88,88)}
+  A((.5+.45*en)*(1+BR.flash));ctx.drawImage(glowG,P.x-130,P.y-130,260,260);   // core bloom
+  // ribbons: arcs orbiting the cube, stretched downwind and flattened by the downforce
+  for(let i=0;i<4;i++){
+    const ph=clock*(1.1+i*.37)+i*1.9,rr0=30+i*9+Math.sin(clock*2+i)*4,
+      sx=1+.5*BR.w,sy=1-.22*Math.min(1,BR.g*.5);
+    ctx.save();ctx.translate(P.x+wx*9,P.y+BR.g*5);ctx.scale(sx,sy);ctx.rotate(ph*.5);
+    ctx.strokeStyle='rgba(140,255,180,'+(.32+.4*en)+')';ctx.lineWidth=2.1+1.6*en;
+    ctx.beginPath();ctx.arc(0,0,rr0,ph,ph+2.1+.5*Math.sin(clock*1.7+i));ctx.stroke();
+    ctx.strokeStyle='rgba(240,255,245,'+(.2+.3*en)+')';ctx.lineWidth=.9;
+    ctx.beginPath();ctx.arc(0,0,rr0,ph,ph+2.1+.5*Math.sin(clock*1.7+i));ctx.stroke();
+    ctx.restore()}
+  // motes caught in the field, blown left and pressed down
+  for(let i=0;i<BR.aura.length;i++){const a=BR.aura[i],
+    an=a.a+clock*a.sp,r=a.r*(1+.22*Math.sin(clock*2.1+a.ph)),
+    x=P.x+Math.cos(an)*r*(1+BR.w*.45)+wx*16,
+    y=P.y+Math.sin(an)*r*(1-.2*Math.min(1,BR.g*.5))+BR.g*11+Math.sin(clock*3+a.ph)*3;
+    A((.3+.5*en)*(.45+.55*Math.sin(clock*2.6+a.ph)));
+    ctx.fillStyle='rgba(185,255,210,1)';ctx.fillRect(x,y,a.s*(1+BR.w*.3),a.s*.8)}
+  // the ground is being crushed under them
+  const cr=1+BR.g*.5;
+  A(.24+.4*en);ctx.strokeStyle='rgba(150,255,190,.95)';ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.ellipse(P.x,P.y+24,38*cr,9/cr,0,0,TAU);ctx.stroke();
+  A(.14+.22*en);ctx.beginPath();ctx.ellipse(P.x,P.y+24,58*cr,14/cr,0,0,TAU);ctx.stroke();
+  // pressure streaks pushing down into the deck
+  for(let i=0;i<5;i++){const q=((clock*1.6+i/5)%1),x=P.x-26+i*13;
+    A((.1+.3*en)*Math.sin(q*Math.PI));
+    ctx.strokeStyle='rgba(190,255,215,1)';ctx.lineWidth=1.3;
+    ctx.beginPath();ctx.moveTo(x,P.y-20+q*44);ctx.lineTo(x+wx*4,P.y-8+q*44);ctx.stroke()}
+  ctx.globalCompositeOperation='source-over';A(1);ctx.restore();
+}
+Object.assign(sfx,{
+  bform(){noise(1.1,.3,420);tone(44,1.3,'sine',.16,26);tone(180,.9,'sine',.06,520)},
+  bsnap(){noise(.35,.3,2200);tone(320,.4,'sawtooth',.08,60)},
+  bgo(){tone(420,.3,'sine',.08,880);setTimeout(()=>tone(640,.35,'sine',.07,1200),90)},
+  bsect(){tone(150,.5,'sine',.1,70);noise(.3,.16,600)},
+  gust(){noise(.8,.3,1500)},
+  qecall(){tone(880,.1,'sine',.06,1320);tone(1320,.08,'triangle',.03)},
+  qeok(){tone(620,.14,'sine',.09,980);setTimeout(()=>tone(980,.22,'sine',.08,1480),80)},
+  qebad(){tone(200,.3,'sawtooth',.09,70);noise(.2,.16,500)},
+  stamlow(){tone(300,.1,'square',.045,210)},
+  bfail(){noise(1,.45,300);tone(60,1.1,'sawtooth',.16,22)},
+  bwin(){tone(330,.5,'sine',.1,990);setTimeout(()=>tone(500,.5,'sine',.09,1480),120);setTimeout(()=>tone(740,.7,'sine',.08,1980),260)}
+});
+
+/* ================= STAMINA BAR + CORNER FEED ================= */
+const stamEl=$('stamw'),stamF=$('stamf'),stamV=$('stamv');let stamPrev=-1;
+function stamHud(show){
+  if(show===true){stamEl.classList.add('on');$('foot').classList.add('hid');stamPrev=-1}
+  else if(show===false){stamEl.classList.remove('on');$('foot').classList.remove('hid');return}
+  const v=Math.round(BR.stam);if(v===stamPrev)return;stamPrev=v;
+  stamF.style.transform='scaleX('+(BR.stam/100).toFixed(3)+')';stamV.textContent=v;
+  stamEl.classList.toggle('low',BR.stam<28);stamEl.classList.toggle('crit',BR.stam<12);
+}
+/* The corner feed plays bridge-feed.mp4 when one is sitting next to index.html. With no file —
+   which is how this ships — it falls back to an energy field drawn here, so the panel is never
+   a dead black box. Either way it starts with the encounter, loops, and stops when it ends. */
+const feedEl=$('vfeed'),feedV=$('vfv'),feedC=$('vfc'),fx=feedC.getContext('2d');
+let feedRAF=0,feedTried=false,feedT=0,feedLast=0,feedIdx=0;
+const FEEDSRC=['bridge-feed.mp4','bridge-feed.webm'];   // drop either one in beside index.html
+function feedTry(){
+  if(feedIdx>=FEEDSRC.length)return;
+  feedV.src=FEEDSRC[feedIdx++];try{feedV.load()}catch(e){}
+  const pr=feedV.play();if(pr&&pr.catch)pr.catch(()=>{});
+}
+feedV.addEventListener('error',()=>{if(feedEl.classList.contains('on'))feedTry()});   // unplayable codec: fall through
+function feedPaint(now){
+  if(!feedEl.classList.contains('on')){feedRAF=0;return}
+  feedRAF=requestAnimationFrame(feedPaint);
+  // if a real clip is up, show it and stop drawing the stand-in entirely
+  const live=feedV.readyState>=2&&!feedV.paused&&!feedV.ended;
+  if(feedC.classList.contains('hid')!==live)feedC.classList.toggle('hid',live);
+  if(live)return;
+  const d=Math.min(.05,(now-feedLast)/1000||0);feedLast=now;feedT+=d;
+  const w=feedC.width,h=feedC.height,t=feedT;
+  fx.globalCompositeOperation='source-over';
+  const g=fx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'#241506');g.addColorStop(.55,'#432a0d');g.addColorStop(1,'#180d04');
+  fx.fillStyle=g;fx.fillRect(0,0,w,h);
+  fx.globalCompositeOperation='lighter';
+  for(let i=0;i<5;i++){   // ribbons of energy coiling through the frame
+    const ph=t*(.5+i*.17)+i*1.4;
+    fx.strokeStyle='rgba(130,255,180,'+(.14+.1*Math.sin(t+i)).toFixed(3)+')';
+    fx.lineWidth=1.4+i*.5;fx.beginPath();
+    for(let x=0;x<=w;x+=6){
+      const y=h*.5+Math.sin(x*.035+ph)*h*(.16+.06*i)+Math.sin(x*.012-ph*1.7)*h*.1;
+      x?fx.lineTo(x,y):fx.moveTo(x,y)}
+    fx.stroke()}
+  fx.fillStyle='rgba(200,255,220,1)';
+  for(let i=0;i<26;i++){const sd=i*91.7,
+    x=((sd*.013%1)*w-t*(16+(sd*.007%1)*34))%w,px=x<0?x+w:x,
+    y=((sd*.029%1)*h+Math.sin(t*1.3+i)*7+h)%h;
+    fx.globalAlpha=.2+.5*((sd*.019)%1);fx.fillRect(px,y,2.2,1.4)}
+  fx.globalAlpha=1;
+  const r=Math.min(w,h)*(.3+.06*Math.sin(t*1.6));
+  const rg=fx.createRadialGradient(w*.5,h*.5,0,w*.5,h*.5,r*2.2);
+  rg.addColorStop(0,'rgba(120,255,170,.22)');rg.addColorStop(1,'rgba(120,255,170,0)');
+  fx.fillStyle=rg;fx.fillRect(0,0,w,h);
+  fx.globalCompositeOperation='source-over';
+}
+function feedShow(on){
+  if(on){
+    feedEl.classList.add('on');
+    if(!feedTried){feedTried=true;feedTry()}
+    else{const pr=feedV.play();if(pr&&pr.catch)pr.catch(()=>{})}
+    if(!feedRAF){feedLast=performance.now();feedRAF=requestAnimationFrame(feedPaint)}
+  }else{
+    feedEl.classList.remove('on');
+    try{feedV.pause()}catch(e){}
+    if(feedRAF){cancelAnimationFrame(feedRAF);feedRAF=0}
+  }
+}
+function feedSize(){   // keep the internal buffer matched to the laid-out panel
+  const r=feedC.getBoundingClientRect();if(!r.width)return;
+  const d=Math.min(window.devicePixelRatio||1,TOUCH?1.5:2);
+  const w=Math.round(r.width*d),h=Math.round(r.height*d);
+  if(feedC.width!==w||feedC.height!==h){feedC.width=w;feedC.height=h}
+}
+addEventListener('resize',feedSize);feedSize();
+
 /* ================= FLOW ================= */
 function die(){
-  G.state='dying';G.dyT=0;P.alive=false;knightAbort();aquaAbort();lavaSound(false);G.chain=0;G.chainT=0;G.nb=G.score>best;if(G.nb){best=G.score;store.set('cube-best',String(best))}
+  G.state='dying';G.dyT=0;P.alive=false;knightAbort();aquaAbort();bridgeAbort();lavaSound(false);G.chain=0;G.chainT=0;G.nb=G.score>best;if(G.nb){best=G.score;store.set('cube-best',String(best))}
   freeze=.11;slow(.9,.22);shake(1);G.fl=.6;G.fc=2;cam.zk+=reduce?0:.03;   // hit-stop → slow-mo → shake → flash
   burst(P.x,P.y,30,560,1.2,8,0,2.2);burst(P.x,P.y,34,720,.95,5.5,1,2.6);sfx.death();
 }
@@ -1317,7 +1792,7 @@ function toMenu(){   // back to the title screen; the AI-piloted demo takes over
   Object.assign(G,{state:'menu',ev:null,evT:32,diff:0,speed:210,bonus:0,score:0,fl:0,fc:0,tr:0,nmCd:0,upT:8,chain:0,chainT:0});
   freeze=0;slowT=0;ts=1;demoReset();hudEl.classList.remove('on');nameplate(false);hsUpdate();show('menu');
 }
-function pause(){if(G.state!=='play')return;G.state='paused';if(AC&&(MUS.h||K.vac||K.roar||LVS.h))AC.suspend();for(const k in keys)keys[k]=0;show('pause')}
+function pause(){if(G.state!=='play')return;G.state='paused';if(AC&&(MUS.h||K.vac||K.roar||LVS.h||BR.wind))AC.suspend();for(const k in keys)keys[k]=0;show('pause')}
 function resume(){audio();G.state='play';show(null)}
 function act(a){audio();if(a==='install'){doInstall();return}if(a==='play'||a==='retry'||a==='restart')start();else if(a==='resume')resume();else if(a==='menu')toMenu()}
 
@@ -1331,7 +1806,7 @@ function update(dt){
     G.t+=sd;G.diff=1-Math.exp(-G.t/70);G.speed=210*(1+G.diff*1.05);            // difficulty curve
     if(P.drop<=0&&!G.ev){G.next-=sd;if(G.next<=0){spawnPattern();G.next+=lerp(1.05,.34,G.diff)*rnd(.8,1.2)}}
     const sc=(G.t*10+G.bonus)|0;if(sc!==G.score){G.score=sc;hudUpdate()}
-    G.upT-=sd;if(G.upT<=0){spawnPick();G.upT=lerp(13,9,G.diff)}      // an upgrade appears every ~10s
+    G.upT-=sd;if(G.upT<=0){if(!BR.on)spawnPick();G.upT=lerp(13,9,G.diff)}   // an upgrade appears every ~10s
   }
   gz=0;stepPlayer(sd);stepJump(sd);stepObs(sd);stepHaz(sd);stepHoles(sd);stepEv(sd);stepKnives(sd);stepShoot(sd);stepBul(sd);stepPicks(sd);stepParts(sd);stepText(dt);
   if((G.state==='play'||G.state==='menu')&&P.alive)G.tp=Math.min(100,G.tp+gz*32*(1+.4*U.graze)*sd);
@@ -1342,7 +1817,7 @@ function update(dt){
   if(ti!==tpi){if(tpi>=0&&ti>tpi&&gz>0)tpTick(ti);if(tpi>=0&&tpi<COST&&ti>=COST)tpReady();tpi=ti;tpv.textContent=ti;tpHud(ti);tpEl.classList.toggle('rdy',ti>=COST);tpEl.classList.toggle('full',ti>=100)}
   tpEl.classList.toggle('dn',!!keys.f);
   P.gl=damp(P.gl,gz>0?Math.min(1,.4+gz*.35):0,gz>0?20:6,dt);P.tk=Math.max(0,P.tk-dt*6);
-  if(G.state==='play'){const lv=Math.min(5,Math.ceil(G.diff*5.5)||1),sec=G.t|0;if(lv!==thrLv){if(thrLv>0&&lv>thrLv)toast('Threat '+lv,'Cubes are getting faster');thrLv=lv;for(let i=0;i<5;i++)thrB[i].className=i<lv?'on':''}if(sec!==tmSec){tmSec=sec;tmEl.textContent=fmtT(sec)}}
+  if(G.state==='play'){const lv=Math.min(5,Math.ceil(G.diff*5.5)||1),sec=G.t|0;if(lv!==thrLv){if(thrLv>0&&lv>thrLv&&!BR.on&&!K.on&&!Q.on)toast('Threat '+lv,'Cubes are getting faster');thrLv=lv;for(let i=0;i<5;i++)thrB[i].className=i<lv?'on':''}if(sec!==tmSec){tmSec=sec;tmEl.textContent=fmtT(sec)}}
   else if(G.state==='menu'&&G.t>50)demoReset();
   if(!tipDone&&G.state==='play'&&G.tp>=COST){tipDone=true;toast('Fire ready',TOUCH?'Hold the right side':'Hold space or click')}
   chainHud();
@@ -1362,6 +1837,7 @@ function drawPlayer(){
   ctx.rotate(P.rot);const k=br*(1+dr*.8);ctx.scale((1+P.qx)*k,(1+P.qy)*k); // tilt + squash springs
   const g=ctx.createLinearGradient(0,-s/2,0,s/2);g.addColorStop(0,'#fff');g.addColorStop(1,'#c9c9d0');
   rr(-s/2,-s/2,s,s,s*.24);ctx.fillStyle=g;ctx.fill();ctx.restore();A(1);
+  if(BR.on)drawPlayerEnergy();
   for(let i=0;i<U.shield;i++){ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(P.x,P.y,25+i*6+Math.sin(clock*3+i)*1.2,0,TAU);ctx.stroke()}
   if(P.gl>.02||P.tk>0){   // TP outline: appears while grazing, pops on every TP tick, arc = TP fill
     const q=s+12+P.tk*7+Math.sin(clock*10)*1.2*P.gl,per=4*q*.92;
@@ -1385,6 +1861,7 @@ function render(){
   for(let x=-640;x<=1664;x+=64){ctx.moveTo(x,-512);ctx.lineTo(x,1152)}for(let y=-512;y<=1152;y+=64){ctx.moveTo(-640,y);ctx.lineTo(1664,y)}ctx.stroke();ctx.restore();
   rr(0,0,AW,AH,26);ctx.fillStyle='rgba(255,255,255,.022)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1.2;ctx.stroke();
   if(F.on)drawFloor();
+  if(BR.on)drawBridge();
   // floating dust at varying depth
   ctx.fillStyle='#fff';
   for(let i=0;i<dust.length;i++){const d=dust[i];A(.08+.28*d.z*(.6+.4*Math.sin(clock*.8+d.ph)));const s=d.z*2.2;ctx.fillRect(d.x-cam.x*(1-d.z)-s/2,d.y-cam.y*(1-d.z)-s/2,s,s)}
@@ -1421,7 +1898,8 @@ function render(){
   drawText();
   // particles (additive)
   ctx.globalCompositeOperation='lighter';
-  for(let i=0;i<PN;i++){const p=parts[i];if(!p.on)continue;const t=p.l/p.m,s=p.s*(.4+.6*t);A(t);ctx.fillStyle=p.c?'#ff2a2a':'#fff';ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillRect(-s/2,-s/2,s,s);ctx.restore()}
+  for(let i=0;i<PN;i++){const p=parts[i];if(!p.on)continue;const t=p.l/p.m,s=p.s*(.4+.6*t);A(t);ctx.fillStyle=p.c===2?'#8dffa0':p.c?'#ff2a2a':'#fff';ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillRect(-s/2,-s/2,s,s);ctx.restore()}
+  if(BR.on)drawBridgeFore();
   ctx.globalCompositeOperation='source-over';A(1);ctx.restore();
   // vignette + impact flash
   g=ctx.createRadialGradient(vw/2,vh/2,Math.min(vw,vh)*.4,vw/2,vh/2,Math.hypot(vw,vh)*.55);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.75)');ctx.fillStyle=g;ctx.fillRect(0,0,vw,vh);
@@ -1443,6 +1921,7 @@ addEventListener('keydown',e=>{
   if(DBG&&c==='KeyB'&&s==='play'&&!G.ev&&!G.knightDone){G.kForce=true;G.evT=0;return}   // debug (?debug): summon the Roaring Knight
   if(DBG&&c==='KeyN'&&s==='play'&&!G.ev&&!G.aquaDone){G.qForce=true;G.evT=0;return}     // debug (?debug): summon Aqua
   if(DBG&&c==='KeyF'&&s==='play'&&!G.ev){G.fForce=true;G.evT=0;return}                  // debug (?debug): trigger the floor collapse
+  if(DBG&&c==='KeyG'&&s==='play'&&!G.ev&&!G.bridgeDone){G.bForce=true;G.evT=0;return}   // debug (?debug): start the Gravity Bridge
   if(s==='play'){if(pk)pause();else if(c==='KeyR')start()}
   else if(s==='paused'){if(pk)resume();else if(c==='KeyR')start();else menuKey(c)}
   else if(s==='menu')start();
