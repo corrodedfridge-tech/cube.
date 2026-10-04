@@ -492,7 +492,7 @@ function stepBul1(dt){
       if(b.p>0)b.p--;else{b.on=0;break}                    // pierce upgrade lets shots pass through
     }
     if(b.on)for(let j=0;j<KFN;j++){const k=kf[j];if(!k.on||k.st!==1)continue;       // Aqua's knives can be shot out of the air
-      if(Math.hypot(b.x-k.x,b.y-k.y)>11+8*k.sz)continue;
+      if(Math.hypot(b.x-k.x,b.y-k.y)>12+13*k.sz)continue;
       k.on=0;G.kills++;G.bonus+=10;burst(k.x,k.y,9,270,.45,2.8,1,3);sfx.kill();popText(k.x,k.y-12,'+10','#ff6a66',16);
       if(b.p>0)b.p--;else{b.on=0;break}}
     if(b.on&&bossB&&Math.hypot(b.x-bossB.x,b.y-bossB.y)<bossB.r){fizzle(b);if(b.p>0)b.p--;else b.on=0}   // either boss: shots land and do absolutely nothing
@@ -785,16 +785,16 @@ function knightBlock(o,dt){   // returns true if the block was removed
   const m=o.s*.5;                                                                // stay on the map: bounce off the walls
   if((o.x<m&&o.vx<0)||(o.x>AW-m&&o.vx>0))o.vx=-o.vx;
   if((o.y<m&&o.vy<0)||(o.y>AH-m&&o.vy>0))o.vy=-o.vy;
-  if(o.k===2&&o.tm>2.2)knightSplit(o);
+  if(o.k===2&&o.tm>1.7)knightSplit(o);
   else if(o.k===3&&o.tm>o.life){o.s-=dt*28;if(o.s<3){o.on=0;burst(o.x,o.y,3,100,.3,2,1,4);return true}}   // shrink away
   return false;
 }
 function knightSplit(o){   // one slowed block -> three small cubes on different paths
   const a0=Math.atan2(o.vy,o.vx);burst(o.x,o.y,10,260,.45,2.6,1,3);sfx.hit();
   for(let i=0;i<3;i++){
-    const a=a0+rnd(-1.9,1.9)+(i-1)*.5,v=rnd(150,280),c=i?spawnObs(o.x,o.y,0,0,rnd(16,22)):o;
+    const a=a0+rnd(-1.9,1.9)+(i-1)*.5,v=rnd(190,340),c=i?spawnObs(o.x,o.y,0,0,rnd(16,22)):o;
     if(!c)continue;
-    c.k=3;c.tm=0;c.a=1;c.vx=Math.cos(a)*v;c.vy=Math.sin(a)*v;if(!i)c.s=rnd(16,22);c.hp=1;c.sp=rnd(-1,1);c.life=rnd(2.6,3.8);
+    c.k=3;c.tm=0;c.a=1;c.vx=Math.cos(a)*v;c.vy=Math.sin(a)*v;if(!i)c.s=rnd(16,22);c.hp=1;c.sp=rnd(-1.3,1.3);c.life=rnd(3,4.2);
   }
 }
 function spawnVac(){   // a fresh cube appears somewhere on the map and starts being pulled in
@@ -802,7 +802,7 @@ function spawnVac(){   // a fresh cube appears somewhere on the map and starts b
   const o=spawnObs(x,y,0,0,rnd(30,40));if(o){o.k=1;o.tm=0}
 }
 function spillOne(){   // one cube shot out of the boss, leftward into the arena
-  const a=Math.PI+rnd(-1.15,1.15),v=1100*rnd(.85,1.1),o=spawnObs(K.x-30,K.y+rnd(-40,40),Math.cos(a)*v,Math.sin(a)*v,rnd(30,40));
+  const a=Math.PI+rnd(-1.15,1.15),v=1250*rnd(.85,1.1),o=spawnObs(K.x-30,K.y+rnd(-40,40),Math.cos(a)*v,Math.sin(a)*v,rnd(30,40));
   if(o){o.k=2;o.tm=0;o.a=1;o.vr*=3}
   burst(K.x-30,K.y,3,520,.3,2.6,1,3);shake(.03);
 }
@@ -811,13 +811,13 @@ function startKnight(){
   G.kForce=false;G.tp=Math.min(100,G.tp+40);   // enough TP to take a few shots at him
   K.on=true;K.y=KN.y;K.x0=offX();K.x=K.x0;K.s=1;K.fx=0;K.gacc=0;K.mus=0;K.col=0;K.ph=0;K.sx=K.sy=0;setF('ball1');setSt('appearing');knightPreload();
 }
-function reveal(){toast('The Roaring Knight','Survive');nameplate(true);shake(.45);G.fl=Math.max(G.fl,.14);G.fc=0;slow(.18,.4);burst(K.x,K.y,36,780,.7,3.4,0,3);burst(K.x,K.y,16,520,.6,3,1,3)}
+function reveal(){toast('The Roaring Knight','Survive');nameplate(true,'The Roaring Knight');shake(.45);G.fl=Math.max(G.fl,.14);G.fc=0;slow(.18,.4);burst(K.x,K.y,36,780,.7,3.4,0,3);burst(K.x,K.y,16,520,.6,3,1,3)}
 function startVacuum(){
   setSt('vacuuming');K.col=0;K.racc=0;
   K.vacT=K.buf.vac?clamp(K.buf.vac.duration-1.2,3,6):5;K.vac=playBuf(K.buf.vac,.8);sfx.warn();   // vacuum sound: started once, stopped when the pickup ends
 }
 function startRelease(){
-  K.ph=1;K.t=0;K.s=1;K.rel=0;K.racc=0;K.relN=clamp(K.col,9,20);
+  K.ph=1;K.t=0;K.s=1;K.rel=0;K.racc=0;K.relN=clamp(K.col,14,28);
   burst(K.x,K.y,30,700,.6,3,1,3);shake(.5);G.fl=Math.max(G.fl,.15);G.fc=0;K.roar=playBuf(K.buf.roar,.9);   // roar: started once here
 }
 function startDeparting(){setSt('departing');K.mus=2;K.x1=offX();nameplate(false);musicStop(1.2);stopSnd(K.roar,.4);K.roar=null}   // music fades out the moment he starts to leave
@@ -849,7 +849,7 @@ function stepKnight(dt){
   case 'idle':K.x=KN.x;K.fx=.7;setF('idle');if(t>=3)startVacuum();break;
   case 'vacuuming':{
     K.fx=.7;K.sx=rnd(-4,4);K.sy+=rnd(-4,4);setF('r1');
-    if(t<Math.min(K.vacT,4.4)){K.racc+=dt*3.8;while(K.racc>=1){K.racc--;spawnVac()}}   // he keeps pulling in fresh cubes while he sucks
+    if(t<Math.min(K.vacT,4.4)){K.racc+=dt*4.6;while(K.racc>=1){K.racc--;spawnVac()}}   // he keeps pulling in fresh cubes while he sucks
     if(Math.random()<.85){const a=rnd(0,TAU),r=rnd(240,360);emit(K.x+Math.cos(a)*r,K.y+Math.sin(a)*r,-Math.cos(a)*r/.45,-Math.sin(a)*r/.45,.45,2.4,Math.random()<.5?1:0,0)}
     let rem=0;for(let i=0;i<ON;i++)if(obs[i].on&&obs[i].k===1)rem++;
     if(t>K.vacT+6&&rem){for(let i=0;i<ON;i++){const o=obs[i];if(o.on&&o.k===1){o.on=0;K.col++}}rem=0}   // safety: never get stuck
@@ -862,7 +862,7 @@ function stepKnight(dt){
       if(t>=.5)startRelease();
     }else if(K.ph===1){   // violent release: cubes stream out one after another while he alternates roaring2 <-> roaring3 every 100 ms
       K.sx=rnd(-3.5,3.5);K.sy+=rnd(-3.5,3.5);K.fx=1;setF(((t/KN.fr)|0)&1?'r3':'r2');
-      K.racc+=dt*K.relN/3.4;while(K.racc>=1&&K.rel<K.relN){K.racc--;K.rel++;spillOne()}
+      K.racc+=dt*K.relN/2.6;while(K.racc>=1&&K.rel<K.relN){K.racc--;K.rel++;spillOne()}
       if(t>=3.4&&K.rel>=K.relN){K.ph=2;K.t=0}
     }else{   // cubes slow, split, scatter and vanish; he hovers in his idle pose (no second attack)
       setF('idle');K.fx=.7;
@@ -891,7 +891,7 @@ const AI={};for(const k in AQ.img){const im=new Image();im.src=AQ.img[k];AI[k]=i
 const ASQ=['s1','s2','s3','s4','s5'];
 const AN={sc:.38,ax:224,ay:430,fr:.15};        // sprite scale, anchor in the 449x512 sprite, 150 ms per frame
 const ATM={in:1.05,fight:25.6,fin:1.3,out:1.0};// phase lengths; the four sum to ~29 s, just inside the track
-const KSC=.2,KFWD=Math.PI*.75;                 // knife sprite scale, and the direction the blade points in the sprite
+const KSC=.3,KFWD=Math.PI*.75;                 // knife sprite scale, and the direction the blade points in the sprite
 const Q={on:false,st:'gone',t:0,an:0,x:AW/2,y:AH*.34,hz:0,s:1,sx:0,sy:0,rot:0,fx:0,
   hx0:0,hy0:0,hx1:0,hy1:0,ht:0,hd:1,hh:0,hop:false,
   mus:0,pi:-1,pt:0,pend:null,cast:null,gacc:0,done:false};
@@ -916,7 +916,7 @@ function stepKnives(dt){
     k.x+=k.vx*dt;k.y+=k.vy*dt;k.a=Math.atan2(k.vy,k.vx);k.l-=dt;
     if(k.l<=0||k.x<-130||k.x>AW+130||k.y<-130||k.y>AH+130){k.on=0;continue}
     if(!live||P.inv>0)continue;
-    const d=Math.hypot(P.x-k.x,P.y-k.y),hr=9+8*k.sz;
+    const d=Math.hypot(P.x-k.x,P.y-k.y),hr=10+13*k.sz;   // forgiving circle on a long blade
     if(d<hr){hurt();return}
     if(d<hr+gr)gz+=1-(d-hr)/gr;                                      // grazing a knife charges TP, same as a cube
     if(!k.near&&d<hr+18){k.near=1;nearMiss(k)}
@@ -937,7 +937,8 @@ function drawKnives(){
       A((.3+.45*u)*fl);
       ctx.save();ctx.translate(k.x,k.y);ctx.rotate(k.a-KFWD);ctx.scale(z,z);ctx.drawImage(im,-w/2,-h/2);ctx.restore();
     }else{
-      ctx.globalCompositeOperation='lighter';A(.4);ctx.drawImage(glowW,k.x-34,k.y-34,68,68);
+      const gr2=24+40*k.sz;
+      ctx.globalCompositeOperation='lighter';A(.4);ctx.drawImage(glowW,k.x-gr2,k.y-gr2,gr2*2,gr2*2);
       for(let j=3;j>0;j--){A(.12*(1-j/4));const t=j*.022;
         ctx.save();ctx.translate(k.x-k.vx*t,k.y-k.vy*t);ctx.rotate(k.a-KFWD);ctx.scale(z,z);ctx.drawImage(im,-w/2,-h/2);ctx.restore()}
       ctx.globalCompositeOperation='source-over';A(1);
@@ -1000,7 +1001,7 @@ function aquaAnchor(){   // the spot furthest from the player, so she never body
 }
 
 /* --- timed emission, for patterns that stream knives out rather than placing them all at once --- */
-function cast(n,every,fn){Q.cast={left:n,i:0,cd:0,every:every,fn:fn}}
+function cast(n,every,fn,delay){Q.cast={left:n,i:0,cd:delay||0,every:every,fn:fn}}
 function stepCast(dt){
   const c=Q.cast;if(!c)return;
   c.cd-=dt;
@@ -1010,36 +1011,38 @@ function stepCast(dt){
 
 /* --- attack patterns. ip = 0..1 intensity, rising across the fight --- */
 const APAT={
-  // aimed spread straight at the player
-  fan(ip){const n=5+(ip*4|0),b=Math.atan2(P.y-Q.y,P.x-Q.x),sp=lerp(300,400,ip),tw=lerp(.74,.52,ip);
-    for(let i=0;i<n;i++)knife(Q.x,Q.y,b+(i-(n-1)/2)*.17,sp,tw,0,1,3.6)},
-  // closing circle from outside the arena, with one safe gap
-  ring(ip){const n=16+(ip*8|0),r=Math.max(AW,AH)*.66,cx=AW/2,cy=AH/2,g=rnd(0,TAU),gw=lerp(.64,.48,ip),sp=lerp(250,330,ip);
+  // aimed spread straight at the player; past halfway she re-aims and fires a second volley
+  fan(ip){const n=7+(ip*6|0),sp=lerp(360,480,ip),tw=lerp(.58,.38,ip);
+    const go=()=>{const b=Math.atan2(P.y-Q.y,P.x-Q.x);for(let i=0;i<n;i++)knife(Q.x,Q.y,b+(i-(n-1)/2)*.14,sp,tw,0,1,3.6)};
+    go();if(ip>.45)cast(1,.1,go,.55)},
+  // closing circle from outside the arena; the gap tightens but never shuts
+  ring(ip){const n=20+(ip*12|0),r=Math.max(AW,AH)*.66,cx=AW/2,cy=AH/2,g=rnd(0,TAU),gw=lerp(.52,.38,ip),sp=lerp(320,420,ip);
     for(let i=0;i<n;i++){const a=i/n*TAU;if(Math.abs(Math.atan2(Math.sin(a-g),Math.cos(a-g)))<gw)continue;
-      knife(cx+Math.cos(a)*r,cy+Math.sin(a)*r,a+Math.PI,sp,lerp(.98,.74,ip),0,1,4.4)}},
-  // a wall sweeping in from one edge with a two-slot gap
-  rain(ip){const h=Math.random()<.5,n=h?9:13,len=h?AH:AW,gap=1+(rnd(0,n-3)|0),f=Math.random()<.5,sp=lerp(280,370,ip),tw=lerp(.92,.68,ip);
-    for(let i=0;i<n;i++){if(i===gap||i===gap+1)continue;const c=(i+.5)/n*len,d=i*.05;
-      if(h)knife(f?-70:AW+70,c,f?0:Math.PI,sp,tw+d,0,1,4.4);
-      else knife(c,f?-70:AH+70,f?Math.PI/2:-Math.PI/2,sp,tw+d,0,1,4.4)}},
-  // rotating arm thrown from her hands
-  spiral(ip){const n=22+(ip*10|0),step=lerp(.44,.58,ip)*(Math.random()<.5?1:-1),a0=rnd(0,TAU),sp=lerp(240,310,ip);
-    cast(n,lerp(.1,.072,ip),i=>knife(Q.x,Q.y,a0+i*step,sp,.44,0,.92,4.2))},
-  // two perpendicular walls crossing the arena, the second a beat behind the first
-  cross(ip){const a=rnd(0,Math.PI),sp=lerp(270,350,ip),n=7;
-    for(let s=0;s<2;s++){const ang=a+s*Math.PI/2,nx=-Math.sin(ang),ny=Math.cos(ang);
-      for(let i=0;i<n;i++){const d=(i-(n-1)/2)*118;
-        knife(AW/2+nx*d-Math.cos(ang)*640,AH/2+ny*d-Math.sin(ang)*640,ang,sp,lerp(.92,.72,ip)+s*.72,0,1,4.6)}}},
-  // a halo around her that holds, then releases outward all at once
-  orbit(ip){const n=11+(ip*7|0),r=165,a0=rnd(0,TAU),sp=lerp(300,390,ip);
-    for(let i=0;i<n;i++){const a=a0+i/n*TAU;knife(Q.x+Math.cos(a)*r,Q.y+Math.sin(a)*r,a,sp,lerp(1.18,.92,ip),0,1,4.2)}},
+      knife(cx+Math.cos(a)*r,cy+Math.sin(a)*r,a+Math.PI,sp,lerp(.78,.54,ip),0,1,4.4)}},
+  // a wall sweeping in from one edge, always with a two-slot gap
+  rain(ip){const h=Math.random()<.5,n=h?11:15,len=h?AH:AW,gap=1+(rnd(0,n-3)|0),f=Math.random()<.5,sp=lerp(350,460,ip),tw=lerp(.72,.5,ip);
+    for(let i=0;i<n;i++){if(i===gap||i===gap+1)continue;const c=(i+.5)/n*len,d=i*.035;
+      if(h)knife(f?-80:AW+80,c,f?0:Math.PI,sp,tw+d,0,1,4.4);
+      else knife(c,f?-80:AH+80,f?Math.PI/2:-Math.PI/2,sp,tw+d,0,1,4.4)}},
+  // rotating arm; once she is warmed up the blades bend as they travel
+  spiral(ip){const n=30+(ip*16|0),step=lerp(.4,.52,ip)*(Math.random()<.5?1:-1),a0=rnd(0,TAU),sp=lerp(300,390,ip),cv=ip>.5?step*.5:0;
+    cast(n,lerp(.075,.05,ip),i=>knife(Q.x,Q.y,a0+i*step,sp,.36,cv,.92,4.2))},
+  // perpendicular walls crossing the arena; a third wall joins them late on
+  cross(ip){const a=rnd(0,Math.PI),sp=lerp(340,440,ip),n=9,sets=ip>.6?3:2;
+    for(let q=0;q<sets;q++){const ang=a+q*(sets>2?Math.PI/3:Math.PI/2),nx=-Math.sin(ang),ny=Math.cos(ang);
+      for(let i=0;i<n;i++){const d=(i-(n-1)/2)*98;
+        knife(AW/2+nx*d-Math.cos(ang)*660,AH/2+ny*d-Math.sin(ang)*660,ang,sp,lerp(.74,.54,ip)+q*.5,0,1,4.8)}}},
+  // a halo that holds around her, then releases outward all at once
+  orbit(ip){const n=14+(ip*10|0),r=160,a0=rnd(0,TAU),sp=lerp(380,490,ip);
+    for(let i=0;i<n;i++){const a=a0+i/n*TAU;knife(Q.x+Math.cos(a)*r,Q.y+Math.sin(a)*r,a,sp,lerp(.95,.7,ip),0,1,4.2)}},
   // alternating sides, weaving up and down
-  wave(ip){const n=13+(ip*6|0),sp=lerp(300,380,ip);
-    cast(n,lerp(.14,.095,ip),i=>{const l=i%2===0,y=AH*.5+Math.sin(i*.58)*AH*.34;
-      knife(l?-70:AW+70,y,l?0:Math.PI,sp,.48,0,.95,4.6)})}
+  wave(ip){const n=18+(ip*8|0),sp=lerp(370,470,ip);
+    cast(n,lerp(.1,.065,ip),i=>{const l=i%2===0,y=AH*.5+Math.sin(i*.58)*AH*.36;
+      knife(l?-80:AW+80,y,l?0:Math.PI,sp,.4,0,.95,4.6)})}
 };
 // a written sequence rather than a shuffle, so the fight reads as choreography and ramps
-const ASEQ=[['fan',2.4],['ring',3.0],['wave',2.8],['rain',2.6],['spiral',3.4],['cross',3.0],['orbit',2.8],['fan',2.0],['rain',1.8],['ring',1.8]];
+const ASEQ=[['fan',2.0],['ring',2.5],['wave',2.2],['rain',2.0],['spiral',2.6],['cross',2.3],['fan',1.7],
+            ['orbit',2.1],['rain',1.6],['spiral',2.0],['ring',1.7],['wave',1.5],['cross',1.4]];
 
 /* --- audio: decoded once, played through the master gain so mute and pause still work --- */
 function aquaPreload(){if(Q.loading||!AC)return;Q.loading=true;
@@ -1072,7 +1075,7 @@ function nextPattern(){
   const[name,dur]=ASEQ[Q.pi],ip=ASEQ.length>1?Q.pi/(ASEQ.length-1):1;
   Q.pt=dur;
   const[ax,ay]=aquaAnchor();
-  aquaHop(ax,ay,.4,120);
+  aquaHop(ax,ay,.3,100);
   Q.pend={fn:APAT[name],ip:ip};
   sfx.ahop();
 }
