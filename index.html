@@ -214,22 +214,18 @@ body.touch.port #rot{display:block}
 #stamw.crit #stamv{color:#ff6a5a}
 @keyframes stampulse{50%{filter:brightness(2)}}
 
-#vfeed{position:fixed;right:max(2.4vw,16px);top:50%;z-index:3;width:min(206px,17vw);pointer-events:none;
- opacity:0;visibility:hidden;transform:translateY(-50%) scale(.92);
+#vfeed{position:fixed;right:max(1.8vw,12px);top:calc(env(safe-area-inset-top,0px) + 12vh);z-index:3;
+ width:min(340px,18vw);pointer-events:none;opacity:0;visibility:hidden;transform:scale(.94);
  transition:opacity .55s var(--ease),transform .55s var(--ease),visibility 0s linear .55s}
-#vfeed.on{opacity:1;visibility:visible;transform:translateY(-50%) scale(1);transition-delay:0s}
-#vfin{position:relative;width:100%;aspect-ratio:854/720;overflow:hidden;border-radius:10px;background:#0a1410;
- border:1px solid rgba(140,255,185,.45);box-shadow:0 0 30px rgba(96,255,150,.2),inset 0 0 24px rgba(96,255,150,.12)}
-#vfin::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:10px;
- background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,rgba(0,0,0,0) 1px 3px),radial-gradient(closest-side,rgba(0,0,0,0) 55%,rgba(0,0,0,.45))}
+#vfeed.on{opacity:1;visibility:visible;transform:scale(1);transition-delay:0s}
+#vfin{position:relative;width:100%;aspect-ratio:854/720;overflow:hidden;background:#000}
 #vfv,#vfc{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-#vfeed>span{display:block;margin-top:7px;font-size:11px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:rgba(150,255,190,.72);text-align:center}
 body.touch #stamw{bottom:auto;top:calc(var(--arb) + 10px)}
-body.touch:not(.port) #vfeed{width:min(128px,13.5vw);right:max(1.4vw,9px)}
+body.touch:not(.port) #vfeed{width:min(170px,18vw);right:max(1.2vw,8px);top:calc(env(safe-area-inset-top,0px) + 108px)}
 body.touch:not(.port) #stamb{width:38vw;height:10px}
 body.touch:not(.port) #stamv{font-size:18px}
 body.touch:not(.port) #staml{font-size:14px}
-body.touch.port #vfeed{right:max(3vw,14px);top:calc(var(--arb) + 58px);bottom:auto;transform:scale(.92);width:min(108px,27vw)}
+body.touch.port #vfeed{right:max(3vw,14px);top:calc(var(--arb) + 54px);bottom:auto;transform:scale(.94);width:min(210px,52vw)}
 body.touch.port #vfeed.on{transform:scale(1)}
 @media (max-width:720px){#stamb{width:54vw;height:13px}#stamv{font-size:23px}#staml{font-size:16px}}
 
@@ -254,7 +250,7 @@ body.touch.port #vfeed.on{transform:scale(1)}
  <div id="touch"><div id="stick"><i id="nub"></i></div><div id="fireb"><span id="firel">FIRE</span></div></div>
  <div id="stamw"><span id="staml">Stamina</span><span id="stamb"><i id="stamf"></i></span><span id="stamv">100</span></div>
 </div>
-<div id="vfeed"><div id="vfin"><video id="vfv" muted loop playsinline preload="auto"></video><canvas id="vfc"></canvas></div><span>Feed</span></div>
+<div id="vfeed"><div id="vfin"><video id="vfv" muted loop playsinline preload="auto"></video><canvas id="vfc"></canvas></div></div>
 
 <div id="menu" class="scr">
  <div id="cube3d"><div id="cg"></div><div id="cbx"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i><i class="g"></i></div></div>
@@ -342,11 +338,12 @@ let vw=0,vh=0,dpr=1,scale=1;
 let port=false,arCY=.52;
 function resize(){
   dpr=Math.min(window.devicePixelRatio||1,TOUCH?1.5:2);                 // fewer pixels to push on a phone
-  vw=innerWidth;vh=innerHeight;cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);
+  vw=Math.max(1,innerWidth||0);vh=Math.max(1,innerHeight||0);   // an embedded pane can report 0 mid-resize
+  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);
   port=vh>vw;document.body.classList.toggle('port',port);
   // portrait is width-bound so the arena rides high and leaves the lower half to thumbs;
   // landscape fills the height and puts the HUD in the side gutters instead.
-  scale=Math.min(vw*(TOUCH?.98:.92)/AW,vh*(TOUCH?(port?.46:.80):.68)/AH);
+  scale=Math.max(1e-4,Math.min(vw*(TOUCH?.98:.92)/AW,vh*(TOUCH?(port?.46:.80):.68)/AH));
   arCY=TOUCH?(port?.33:.42):.52;
   const ah=AH*scale,st=document.documentElement.style;                  // the HUD anchors to these
   st.setProperty('--art',(vh*arCY-ah/2).toFixed(1)+'px');
@@ -1375,10 +1372,10 @@ const WSPD=142,HVY=.22,PRATE=.040;                              // wind drift, w
 const FOOT=()=>DKY-P.s/2;                                       // the player's feet rest on the deck
 const BR={on:false,st:'gone',t:0,prog:0,stam:100,sect:-1,w:1,g:1,en:.55,
   gust:0,gustT:3,qe:null,qi:0,low:0,flash:0,push:0,off:0,bob:0,
-  dust:[],deb:[],rib:[],aura:[],trail:[],hum:null,wind:null,pf:false};
+  dust:[],deb:[],rib:[],trail:[],wake:[],vine:[],wacc:0,hum:null,wind:null,pf:false};
 for(let i=0;i<72;i++)BR.dust.push({x:rnd(0,AW),y:rnd(0,AH),z:rnd(.3,1),s:rnd(1,3)});
 for(let i=0;i<24;i++)BR.deb.push({x:rnd(0,AW),y:rnd(0,DKY),vy:0,r:rnd(0,TAU),vr:rnd(-2,2),s:rnd(5,15),z:rnd(.45,1)});
-for(let i=0;i<34;i++)BR.aura.push({a:rnd(0,TAU),r:rnd(15,42),sp:rnd(.6,2.4)*(Math.random()<.5?1:-1),ph:rnd(0,TAU),s:rnd(1.4,3.4)});
+for(let i=0;i<110;i++)BR.wake.push({on:0,x:0,y:0,vx:0,vy:0,l:0,m:1,s:2});
 for(let i=0;i<14;i++)BR.trail.push({x:0,y:0,l:0});
 
 /* --- procedural ambience: a wind bed and a gravity drone, both through the master gain --- */
@@ -1414,6 +1411,17 @@ function startBridge(){
   BR.gust=0;BR.gustT=4;BR.low=0;BR.flash=0;BR.push=0;BR.off=0;BR.bob=0;BR.w=1;BR.g=1;BR.en=0;
   for(let i=0;i<BR.trail.length;i++)BR.trail[i].l=0;
   BR.rib.length=0;for(let i=0;i<16;i++)BR.rib.push({p:i/16,on:0});
+  BR.vine.length=0;BR.wacc=0;
+  for(let i=0;i<18;i++){                                          // creep in from above and below, never across the walkway
+    const top=i%2===0,lim=top?DKY-66:DKY+DKH+28,pts=[];
+    let x=rnd(-40,AW+40),y=top?-24:AH+24,ang=top?Math.PI/2:-Math.PI/2;
+    for(let k=0;k<11;k++){
+      ang+=rnd(-.52,.52);const st=rnd(24,46);
+      x+=Math.cos(ang)*st;y+=Math.sin(ang)*st;
+      if(top?y>lim:y<lim)break;
+      pts.push([x,y]);}
+    if(pts.length>2)BR.vine.push({pts,w:rnd(1.6,3.8),ph:rnd(0,TAU),nodes:[rnd(.35,.7),rnd(.7,.95)]});}
+  for(let i=0;i<BR.wake.length;i++)BR.wake[i].on=0;
   BR.st='intro';P.inv=99;P.z=0;P.jt=0;                              // nothing else can touch the player here
   Object.assign(P,{x:AW*.22,y:FOOT(),vx:0,vy:0});
   stamHud(true);feedShow(true);bridgeAudioStart();
@@ -1515,8 +1523,17 @@ function stepBridge(dt){
   }
   BR.pf=!!keys.f;
   BR.flash=Math.max(0,BR.flash-dt*2.2);
-  const tr=BR.trail[(BR.t*22|0)%BR.trail.length];tr.x=P.x;tr.y=P.y;tr.l=.42;
-  for(let i=0;i<BR.trail.length;i++)if(BR.trail[i].l>0)BR.trail[i].l-=dt;
+  if(BR.st==='cross'||BR.st==='win'){                              // white wake torn off backwards by the gale
+    BR.wacc+=dt*(52+BR.w*34);
+    while(BR.wacc>=1){BR.wacc--;
+      for(let i=0;i<BR.wake.length;i++){const w=BR.wake[i];if(w.on)continue;
+        w.on=1;w.x=P.x+rnd(-11,11);w.y=P.y+rnd(-13,13);
+        w.vx=-(210+BR.w*280)-rnd(0,170);w.vy=rnd(-34,34);
+        w.l=w.m=rnd(.42,.85);w.s=rnd(1.2,2.8);break}}}
+  for(let i=0;i<BR.wake.length;i++){const w=BR.wake[i];if(!w.on)continue;
+    w.l-=dt;if(w.l<=0){w.on=0;continue}
+    w.x+=w.vx*dt;w.y+=w.vy*dt;w.vy*=.985;
+    if(w.x<-70)w.on=0}
   // motes and debris blown down the span, and pressed toward the deck
   for(let i=0;i<BR.dust.length;i++){const d=BR.dust[i];
     d.x-=(140+BR.w*250)*d.z*dt;d.y+=BR.g*30*d.z*dt;
@@ -1528,42 +1545,111 @@ function stepBridge(dt){
   stamHud();
 }
 
-/* --- drawing: the span in elevation. Towers and a sagging main cable carry a dark deck across a
-   warm haze; the green is kept for the energy coming off the player, the way the reference frames
-   hold the character as a silhouette with the glow streaming off them. --- */
+/* --- drawing: a plain platform under an aurora sky. The sky carries a little green from the
+   start and swings further into it the closer the far side gets; past two thirds, vines creep in
+   around the frame. The player keeps no green of their own -- just a white wake tearing off to
+   the left in the gale. --- */
+const mixc=(a,b,t)=>{   // lerp two '#rrggbb' values
+  const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16),
+    r=Math.round(((pa>>16)&255)+((((pb>>16)&255)-((pa>>16)&255))*t)),
+    g=Math.round(((pa>>8)&255)+((((pb>>8)&255)-((pa>>8)&255))*t)),
+    l=Math.round((pa&255)+(((pb&255)-(pa&255))*t));
+  return 'rgb('+r+','+g+','+l+')';
+};
+const SKYA=['#2a1a0b','#6b4418','#bc843e','#8a5a26','#120b05'];   // amber at the start
+const SKYG=['#06170f','#0f4b2d','#43c982','#1b6b44','#031009'];   // green by the far side
+const greenAmt=()=>Math.pow(clamp(BR.prog,0,1),1.35);             // held back early, strong late
+const vineAmt=()=>clamp((BR.prog-.62)/.33,0,1);
+
+function drawAurora(amt){   // soft curtains rippling across the upper sky
+  if(amt<=0)return;
+  ctx.globalCompositeOperation='lighter';
+  for(let b=0;b<4;b++){
+    const ph=clock*(.22+b*.06)+b*2.3,drift=(clock*(9+b*5))%(AW+300);
+    for(let i=0;i<46;i++){
+      const u=i/46,x=((u*(AW+300)+drift)%(AW+300))-150;
+      const wob=Math.sin(u*9+ph)*30+Math.sin(u*21-ph*1.6)*13,
+        top=28+b*34+wob,
+        h=(110+70*Math.sin(u*6+ph*1.4))*(1+b*.22),
+        a=amt*(.075+.065*Math.sin(u*13+ph*2.2))*(1-b*.14);
+      if(a<=.002)continue;
+      const g=ctx.createLinearGradient(0,top,0,top+h);
+      g.addColorStop(0,'rgba(120,255,175,0)');
+      g.addColorStop(.35,'rgba(108,255,168,'+a.toFixed(4)+')');
+      g.addColorStop(.72,'rgba(96,240,190,'+(a*.6).toFixed(4)+')');
+      g.addColorStop(1,'rgba(90,255,210,0)');
+      ctx.fillStyle=g;ctx.fillRect(x,top,(AW+300)/46+1.5,h);
+    }
+  }
+  ctx.globalCompositeOperation='source-over';
+}
+function drawVines(amt){   // tendrils creeping in around the edges as the far side nears
+  if(amt<=0||!BR.vine.length)return;
+  ctx.globalCompositeOperation='lighter';
+  ctx.lineCap='round';
+  for(let i=0;i<BR.vine.length;i++){
+    const v=BR.vine[i],n=Math.max(2,Math.round(v.pts.length*amt));
+    ctx.strokeStyle='rgba(110,255,170,'+(.2+.45*amt).toFixed(3)+')';ctx.lineWidth=v.w;
+    ctx.beginPath();
+    for(let k=0;k<n;k++){const p=v.pts[k],sw=Math.sin(clock*1.1+v.ph+k*.42)*(2.4+k*.22);
+      k?ctx.lineTo(p[0]+sw,p[1]):ctx.moveTo(p[0]+sw,p[1])}
+    ctx.stroke();
+    ctx.strokeStyle='rgba(225,255,238,'+(.12+.26*amt).toFixed(3)+')';ctx.lineWidth=v.w*.4;
+    ctx.beginPath();
+    for(let k=0;k<n;k++){const p=v.pts[k],sw=Math.sin(clock*1.1+v.ph+k*.42)*(2.4+k*.22);
+      k?ctx.lineTo(p[0]+sw,p[1]):ctx.moveTo(p[0]+sw,p[1])}
+    ctx.stroke();
+    for(let j=0;j<v.nodes.length;j++){   // buds along the length
+      const f=v.nodes[j],k=Math.floor(f*(n-1));if(k<1)continue;
+      const p=v.pts[k],sw=Math.sin(clock*1.1+v.ph+k*.42)*(2.4+k*.22),
+        r=(2+1.4*Math.sin(clock*2.4+v.ph+j))*(.5+.5*amt);
+      ctx.fillStyle='rgba(180,255,210,'+(.35+.4*amt).toFixed(3)+')';
+      ctx.beginPath();ctx.arc(p[0]+sw,p[1],r,0,TAU);ctx.fill();
+      A(.22*amt);ctx.drawImage(glowG,p[0]+sw-22,p[1]-22,44,44);A(1);
+    }
+  }
+  ctx.globalCompositeOperation='source-over';
+}
 function drawBridge(){
-  const en=BR.en,sc=BR.prog*3400,DB=DKY+DKH;
+  const en=BR.en,sc=BR.prog*3400,DB=DKY+DKH,gr=greenAmt();
   const asm=BR.st==='intro'?clamp((BR.t-.5)/1.9,0,1):1;            // the platform lays itself out from the middle
   ctx.save();rr(0,0,AW,AH,26);ctx.clip();
-  // sky: brightest just above the walkway, falling away up and down
+  // sky, swinging from amber toward green as the far side gets closer
   let g=ctx.createLinearGradient(0,0,0,AH);
-  g.addColorStop(0,'#2a1a0b');g.addColorStop(.32,'#6b4418');g.addColorStop(.58,'#bc843e');
-  g.addColorStop(.63,'#8a5a26');g.addColorStop(1,'#120b05');
+  g.addColorStop(0,mixc(SKYA[0],SKYG[0],gr));g.addColorStop(.32,mixc(SKYA[1],SKYG[1],gr));
+  g.addColorStop(.58,mixc(SKYA[2],SKYG[2],gr));g.addColorStop(.63,mixc(SKYA[3],SKYG[3],gr));
+  g.addColorStop(1,mixc(SKYA[4],SKYG[4],gr));
   A(1);ctx.fillStyle=g;ctx.fillRect(0,0,AW,AH);
+  drawAurora(.95+1.25*gr);                                         // present from the first step, dominant by the end
   ctx.globalCompositeOperation='lighter';
-  for(let k=0;k<6;k++){const r=250+110*Math.sin(clock*.33+k*1.2);A(.1+.05*Math.sin(clock*.8+k));
-    ctx.drawImage(glowA,AW*(.5+.54*Math.sin(clock*.12+k*2.3))-r,DKY*(.45+.3*Math.cos(clock*.1+k*1.5))-r,r*2,r*2)}
+  for(let k=0;k<6;k++){const r=250+110*Math.sin(clock*.33+k*1.2),
+    x=AW*(.5+.54*Math.sin(clock*.12+k*2.3))-r,y=DKY*(.45+.3*Math.cos(clock*.1+k*1.5))-r;
+    A((.1+.05*Math.sin(clock*.8+k))*(1-gr));ctx.drawImage(glowA,x,y,r*2,r*2);
+    A((.1+.05*Math.sin(clock*.8+k))*gr);ctx.drawImage(glowG,x,y,r*2,r*2)}
   ctx.globalCompositeOperation='source-over';A(1);   // the haze loop leaves alpha low; the slab must be opaque
+  drawVines(vineAmt());
   if(asm<=0){ctx.restore();return}
   const hw=AW*.5*asm,x0=AW*.5-hw,x1=AW*.5+hw;                      // it grows out from the centre during the intro
   // the slab itself
   g=ctx.createLinearGradient(0,DKY,0,DB);
-  g.addColorStop(0,'#2a1c14');g.addColorStop(.14,'#0c0806');g.addColorStop(1,'#040202');
+  g.addColorStop(0,mixc('#2a1c14','#13261b',gr));g.addColorStop(.14,mixc('#0c0806','#060f0a',gr));
+  g.addColorStop(1,'#040202');
   ctx.fillStyle=g;ctx.fillRect(x0,DKY,hw*2,DKH);
   // plating seams sliding past, so the ground you are covering is visible
   ctx.save();ctx.beginPath();ctx.rect(x0,DKY,hw*2,DKH);ctx.clip();
-  ctx.strokeStyle='rgba(228,170,98,.13)';ctx.lineWidth=1.4;ctx.beginPath();
+  ctx.strokeStyle=mixc('#e4aa62','#8fe8b4',gr);A(.13);ctx.lineWidth=1.4;ctx.beginPath();
   for(let x=-((sc*.8)%92);x<AW+92;x+=92){ctx.moveTo(x,DKY);ctx.lineTo(x,DB)}
-  ctx.stroke();
-  ctx.strokeStyle='rgba(228,170,98,.07)';ctx.lineWidth=1;ctx.beginPath();
+  ctx.stroke();A(.07);ctx.lineWidth=1;ctx.beginPath();
   ctx.moveTo(0,DKY+DKH*.55);ctx.lineTo(AW,DKY+DKH*.55);ctx.stroke();
-  ctx.restore();
+  ctx.restore();A(1);
   // the lit surface you walk on
-  ctx.strokeStyle='rgba(255,224,172,1)';ctx.lineWidth=4;
+  ctx.strokeStyle=mixc('#ffe0ac','#cdffe2',gr);ctx.lineWidth=4;
   ctx.beginPath();ctx.moveTo(x0,DKY);ctx.lineTo(x1,DKY);ctx.stroke();
-  ctx.strokeStyle='rgba(120,74,32,.9)';ctx.lineWidth=2;                 // shadowed lip just under it
+  ctx.strokeStyle=mixc('#784a20','#2c6b47',gr);ctx.lineWidth=2;    // shadowed lip just under it
   ctx.beginPath();ctx.moveTo(x0,DKY+3);ctx.lineTo(x1,DKY+3);ctx.stroke();
-  ctx.globalCompositeOperation='lighter';A(.22*asm);ctx.drawImage(glowA,x0-40,DKY-46,hw*2+80,62);
+  ctx.globalCompositeOperation='lighter';
+  A(.22*asm*(1-gr));ctx.drawImage(glowA,x0-40,DKY-46,hw*2+80,62);
+  A(.22*asm*gr);ctx.drawImage(glowG,x0-40,DKY-46,hw*2+80,62);
   ctx.globalCompositeOperation='source-over';A(1);
   // energy seam running its length
   ctx.strokeStyle='rgba(150,255,195,'+(.3+.5*en)+')';ctx.lineWidth=2.2;
@@ -1578,14 +1664,15 @@ function drawBridge(){
 }
 /* --- drawing: wind, debris and the far side, over the top of the player --- */
 function drawBridgeFore(){
-  const DB=DKY+DKH;
+  const DB=DKY+DKH,gr=greenAmt();
+  const cFar=mixc('#ffb060','#7dffb4',gr),cNear=mixc('#ffdcaa','#c8ffdd',gr);
   ctx.save();rr(0,0,AW,AH,26);ctx.clip();
   ctx.globalCompositeOperation='lighter';
   for(let i=0;i<BR.deb.length;i++){const b=BR.deb[i],s=b.s*b.z;
     A(.14+.3*b.z);ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.r);
-    ctx.fillStyle='rgba(96,60,28,.9)';ctx.fillRect(-s/2,-s/2,s,s);
-    ctx.strokeStyle='rgba(250,200,132,.5)';ctx.lineWidth=1.1;ctx.strokeRect(-s/2,-s/2,s,s);ctx.restore()}
-  // the gale: long amber streaks running right to left across the whole frame
+    ctx.fillStyle=mixc('#603c1c','#2b5c3e',gr);ctx.fillRect(-s/2,-s/2,s,s);
+    ctx.strokeStyle=cNear;ctx.lineWidth=1.1;ctx.strokeRect(-s/2,-s/2,s,s);ctx.restore()}
+  // the gale: long streaks running right to left across the whole frame
   const n=30+(BR.w*26|0);
   for(let i=0;i<n;i++){
     const sd=i*127.1,q=((clock*(.46+BR.w*.54)+((sd*.0137)%1))%1),
@@ -1593,23 +1680,26 @@ function drawBridgeFore(){
       L=90+BR.w*165*(.4+((sd*.0071)%1)),near=Math.abs(y-DKY)<70;
     if(y>DKY&&y<DB)continue;
     A((.07+.26*BR.w)*Math.sin(q*Math.PI)*(.45+.55*((sd*.0213)%1))*(near?.75:1));
-    ctx.strokeStyle=near?'rgba(255,220,170,1)':'rgba(255,176,96,1)';
+    ctx.strokeStyle=near?cNear:cFar;
     ctx.lineWidth=.9+1.6*((sd*.0053)%1);
     ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+L,y+BR.g*3);ctx.stroke()}
   for(let i=0;i<BR.dust.length;i++){const d=BR.dust[i];
     if(d.y>DKY&&d.y<DB)continue;
-    A(.12+.4*d.z);ctx.fillStyle=Math.abs(d.y-DKY)<60?'rgba(180,255,205,1)':'rgba(255,196,130,1)';
-    ctx.fillRect(d.x,d.y,d.s*d.z*2.4,d.s*d.z)}
+    A(.12+.4*d.z);ctx.fillStyle=cFar;ctx.fillRect(d.x,d.y,d.s*d.z*2.4,d.s*d.z)}
+  // the player's wake: white, torn off backwards down the span
+  for(let i=0;i<BR.wake.length;i++){const w=BR.wake[i];if(!w.on)continue;
+    const t=w.l/w.m,L=Math.min(58,Math.abs(w.vx)*.055);
+    A(t*t);ctx.strokeStyle='rgba(255,255,255,1)';ctx.lineWidth=w.s*(.4+.6*t);
+    ctx.beginPath();ctx.moveTo(w.x,w.y);ctx.lineTo(w.x+L,w.y);ctx.stroke()}
   ctx.globalCompositeOperation='source-over';A(1);
   ctx.restore();
   // the far side, once it comes into view
   if(BR.prog>.84&&BR.st!=='fail'){
     const u=(BR.prog-.84)/.16,x=AW-20-u*70;
     ctx.save();rr(0,0,AW,AH,26);ctx.clip();ctx.globalCompositeOperation='lighter';
-    A(.14+.3*u);ctx.drawImage(glowA,x-190,DKY-300,380,460);
-    A(.12+.3*u);ctx.drawImage(glowG,x-120,DKY-260,240,330);
-    ctx.strokeStyle='rgba(255,236,196,'+(.45+.5*u)+')';ctx.lineWidth=4;
-    ctx.beginPath();ctx.moveTo(x,DKY-TOWH-40);ctx.lineTo(x,DB+50);ctx.stroke();
+    A(.16+.38*u);ctx.drawImage(glowG,x-200,DKY-320,400,500);
+    ctx.strokeStyle='rgba(210,255,228,'+(.45+.5*u)+')';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(x,60);ctx.lineTo(x,DB+50);ctx.stroke();
     ctx.globalCompositeOperation='source-over';A(1);ctx.restore()}
   // quick embrace ring, drawn last so it is never buried
   const q=BR.qe;
@@ -1622,59 +1712,30 @@ function drawBridgeFore(){
       ctx.beginPath();ctx.arc(P.x,P.y,rt,0,TAU);ctx.stroke();
       A(.35);ctx.lineWidth=rt-rb;ctx.strokeStyle='rgba(120,255,170,.5)';
       ctx.beginPath();ctx.arc(P.x,P.y,(rt+rb)/2,0,TAU);ctx.stroke();
-      A(1);ctx.strokeStyle='rgba(255,246,228,.95)';ctx.lineWidth=3.4;
+      A(1);ctx.strokeStyle='rgba(255,255,255,.95)';ctx.lineWidth=3.4;
       ctx.beginPath();ctx.arc(P.x,P.y,cr,0,TAU);ctx.stroke();
       A(.5);ctx.drawImage(glowG,P.x-cr-30,P.y-cr-30,(cr+30)*2,(cr+30)*2);
       ctx.globalCompositeOperation='source-over';A(1);
-      ctx.font='700 17px '+FF;ctx.textAlign='center';ctx.fillStyle='#e8ffee';
+      ctx.font='700 17px '+FF;ctx.textAlign='center';ctx.fillStyle='#ffffff';
       ctx.fillText(TOUCH?'TAP':'SPACE',P.x,P.y-r0-18);
     }else{
       const u=q.ht/.55;A(1-u);
-      ctx.strokeStyle=q.res>0?'rgba(150,255,185,1)':'rgba(255,120,80,1)';ctx.lineWidth=5*(1-u);
+      ctx.strokeStyle=q.res>0?'rgba(170,255,200,1)':'rgba(255,120,80,1)';ctx.lineWidth=5*(1-u);
       ctx.beginPath();ctx.arc(P.x,P.y,rt+u*110,0,TAU);ctx.stroke();
       ctx.globalCompositeOperation='source-over';A(1)}
     ctx.restore()}
-  if(BR.flash>.004){A(BR.flash*.4);ctx.fillStyle='#ffeec4';ctx.fillRect(0,0,AW,AH);A(1)}
+  if(BR.flash>.004){A(BR.flash*.4);ctx.fillStyle=mixc('#ffeec4','#dcffe8',gr);ctx.fillRect(0,0,AW,AH);A(1)}
 }
-/* --- the energy wrapped around the player, pressed down onto the deck by the weight --- */
+/* --- the player carries no aura of its own now: a contact shadow, and a white glow so the cube
+   stays readable against the sky. The wake behind it is drawn with the wind, in drawBridgeFore. --- */
 function drawPlayerEnergy(){
-  const en=BR.en,wx=-BR.w*.5,gz=clamp(BR.bob,0,1.2);
+  const gz=clamp(BR.bob,0,1.2);
   ctx.save();
-  // contact shadow where the cube meets the running surface
   ctx.globalCompositeOperation='source-over';
-  A(.42);ctx.fillStyle='#000';ctx.beginPath();
-  ctx.ellipse(P.x,DKY+3,24+10*gz,5.5,0,0,TAU);ctx.fill();A(1);
+  A(.45);ctx.fillStyle='#000';ctx.beginPath();
+  ctx.ellipse(P.x,DKY+3,23+9*gz,5.5,0,0,TAU);ctx.fill();A(1);
   ctx.globalCompositeOperation='lighter';
-  for(let i=0;i<BR.trail.length;i++){const t=BR.trail[i];if(t.l<=0)continue;
-    A(.3*(t.l/.42)*en);ctx.drawImage(glowG,t.x-44,t.y-44,88,88)}
-  A((.5+.45*en)*(1+BR.flash));ctx.drawImage(glowG,P.x-130,P.y-130,260,260);   // core bloom
-  // ribbons orbiting the cube, stretched downwind and flattened by the downforce
-  for(let i=0;i<4;i++){
-    const ph=clock*(1.1+i*.37)+i*1.9,rr0=28+i*9+Math.sin(clock*2+i)*4,
-      sx=1+.5*BR.w,sy=1-.2*gz;
-    ctx.save();ctx.translate(P.x+wx*9,P.y+gz*4);ctx.scale(sx,sy);ctx.rotate(ph*.5);
-    ctx.strokeStyle='rgba(140,255,180,'+(.32+.4*en)+')';ctx.lineWidth=2.1+1.6*en;
-    ctx.beginPath();ctx.arc(0,0,rr0,ph,ph+2.1+.5*Math.sin(clock*1.7+i));ctx.stroke();
-    ctx.strokeStyle='rgba(240,255,245,'+(.2+.3*en)+')';ctx.lineWidth=.9;
-    ctx.beginPath();ctx.arc(0,0,rr0,ph,ph+2.1+.5*Math.sin(clock*1.7+i));ctx.stroke();
-    ctx.restore()}
-  // motes caught in the field, blown left and pressed down onto the deck
-  for(let i=0;i<BR.aura.length;i++){const a=BR.aura[i],
-    an=a.a+clock*a.sp,r=a.r*(1+.22*Math.sin(clock*2.1+a.ph)),
-    x=P.x+Math.cos(an)*r*(1+BR.w*.45)+wx*16,
-    y=Math.min(DKY-1,P.y+Math.sin(an)*r*(1-.2*gz)+gz*8+Math.sin(clock*3+a.ph)*3);
-    A((.3+.5*en)*(.45+.55*Math.sin(clock*2.6+a.ph)));
-    ctx.fillStyle='rgba(185,255,210,1)';ctx.fillRect(x,y,a.s*(1+BR.w*.3),a.s*.8)}
-  // the surface buckling under the weight
-  const cr=1+gz*.5;
-  A(.24+.4*en);ctx.strokeStyle='rgba(150,255,190,.95)';ctx.lineWidth=1.8;
-  ctx.beginPath();ctx.ellipse(P.x,DKY+2,40*cr,7/cr,0,0,TAU);ctx.stroke();
-  A(.14+.22*en);ctx.beginPath();ctx.ellipse(P.x,DKY+2,62*cr,11/cr,0,0,TAU);ctx.stroke();
-  // pressure streaks driving down into the deck
-  for(let i=0;i<5;i++){const q=((clock*1.6+i/5)%1),x=P.x-24+i*12;
-    A((.1+.3*en)*Math.sin(q*Math.PI));
-    ctx.strokeStyle='rgba(190,255,215,1)';ctx.lineWidth=1.3;
-    ctx.beginPath();ctx.moveTo(x,P.y-16+q*30);ctx.lineTo(x+wx*4,P.y-6+q*30);ctx.stroke()}
+  A(.3+.2*BR.flash);ctx.drawImage(glowW,P.x-72,P.y-72,144,144);
   ctx.globalCompositeOperation='source-over';A(1);ctx.restore();
 }
 Object.assign(sfx,{
@@ -1769,7 +1830,7 @@ function feedPaint(now){
     y=((sd*.029%1)*h+Math.sin(t*1.3+i)*7+h)%h;
     fx.globalAlpha=.2+.5*((sd*.019)%1);fx.fillRect(px,y,2.2,1.4)}
   fx.globalAlpha=1;
-  const r=Math.min(w,h)*(.3+.06*Math.sin(t*1.6));
+  const r=Math.max(1,Math.min(w,h)*(.3+.06*Math.sin(t*1.6))||1);
   const rg=fx.createRadialGradient(w*.5,h*.5,0,w*.5,h*.5,r*2.2);
   rg.addColorStop(0,'rgba(120,255,170,.22)');rg.addColorStop(1,'rgba(120,255,170,0)');
   fx.fillStyle=rg;fx.fillRect(0,0,w,h);
@@ -1812,6 +1873,7 @@ function start(){
   audio();sfx.ui();for(let i=0;i<ON;i++)obs[i].on=0;
   Object.assign(P,{x:AW/2,y:AH/2,vx:0,vy:0,rot:0,qx:0,qy:0,qxv:0,qyv:0,cd:0,drop:1,alive:true});
   Object.assign(G,{state:'play',t:0,diff:0,speed:210,next:.9,bonus:0,score:0,nmCd:0,fl:0,tp:0,upT:8,ev:null,evT:32,chain:0,chainT:0,nm:0,kills:0,maxChain:0});resetArm();
+  cam.x=0;cam.y=0;cam.z=1;cam.zk=0;                            // never carry a poisoned camera into a new run
   freeze=0;slowT=0;ts=1;show(null);hudEl.classList.add('on');hudUpdate();toast('Go','Dodge the red cubes');
 }
 function toMenu(){   // back to the title screen; the AI-piloted demo takes over the background again
@@ -1840,6 +1902,10 @@ function update(dt){
   gz=0;stepPlayer(sd);stepJump(sd);stepObs(sd);stepHaz(sd);stepHoles(sd);stepEv(sd);stepKnives(sd);stepShoot(sd);stepBul(sd);stepPicks(sd);stepParts(sd);stepText(dt);
   if((G.state==='play'||G.state==='menu')&&P.alive)G.tp=Math.min(100,G.tp+gz*32*(1+.4*U.graze)*sd);
   for(let i=0;i<dust.length;i++){const d=dust[i];d.x+=d.vx*d.z*dt;d.y+=d.vy*d.z*dt;if(d.y<-150)d.y=AH+150;if(d.x<-200)d.x=AW+200;if(d.x>AW+200)d.x=-200}
+  if(!Number.isFinite(P.x)||!Number.isFinite(P.y)||!Number.isFinite(P.vx)||!Number.isFinite(P.vy)){
+    P.x=AW/2;P.y=AH/2;P.vx=P.vy=0}                             // self-heal rather than wedge
+  if(!Number.isFinite(cam.x)||!Number.isFinite(cam.y)||!Number.isFinite(cam.z)||!Number.isFinite(cam.zk)){
+    cam.x=cam.y=cam.zk=0;cam.z=1}
   const f=.04+G.diff*.03;cam.x=damp(cam.x,-(P.x-AW/2)*f,4,dt);cam.y=damp(cam.y,-(P.y-AH/2)*f,4,dt);cam.zk=damp(cam.zk,0,8,dt);
   cam.z=damp(cam.z,1+G.diff*.07+(G.state==='dying'?.05:0),3,dt);
   const ti=G.tp|0;
@@ -1877,13 +1943,15 @@ function drawPlayer(){
     ctx.restore();A(1)}
 }
 function render(){
-  const fit=Math.min(1,vw*.95/((AW+490)*scale)),z=(scale*cam.z+cam.zk*scale)*(1-K.fr*(1-fit)),cx=vw/2-K.fr*245*z,cy=vh*arCY,sh=G.tr*G.tr*24,
+  const fitR=vw*.95/((AW+490)*scale),fit=Number.isFinite(fitR)?Math.min(1,fitR):1,
+    z=(scale*cam.z+cam.zk*scale)*(1-K.fr*(1-fit)),cx=vw/2-K.fr*245*z,cy=vh*arCY,sh=G.tr*G.tr*24,
     shx=(Math.sin(clock*67)+Math.sin(clock*41+2))*.5*sh,shy=(Math.sin(clock*59+1)+Math.sin(clock*47))*.5*sh;
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalCompositeOperation='source-over';A(1);
   ctx.fillStyle='#050506';ctx.fillRect(0,0,vw,vh);
   // soft light behind the player
   const px=cx+shx+(P.x-AW/2+cam.x)*z,py=cy+shy+(P.y-AH/2+cam.y)*z;
-  let g=ctx.createRadialGradient(px,py,0,px,py,Math.max(vw,vh)*.5);g.addColorStop(0,'rgba(255,255,255,.09)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,vw,vh);
+  let g=ctx.createRadialGradient(Number.isFinite(px)?px:vw/2,Number.isFinite(py)?py:vh/2,0,
+    Number.isFinite(px)?px:vw/2,Number.isFinite(py)?py:vh/2,Math.max(1,Math.max(vw,vh)*.5));g.addColorStop(0,'rgba(255,255,255,.09)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,vw,vh);
   ctx.save();ctx.translate(cx+shx,cy+shy);ctx.scale(z,z);ctx.translate(-AW/2+cam.x,-AH/2+cam.y);
   // parallax grid: shifts less than the arena → depth
   ctx.save();ctx.translate(-cam.x*.4,-cam.y*.4);ctx.strokeStyle='rgba(255,255,255,.035)';ctx.lineWidth=1/z;ctx.beginPath();
@@ -1972,9 +2040,12 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)pause()});
 
 /* ================= LOOP ================= */
 function frame(now){
+  requestAnimationFrame(frame);                                  // reschedule FIRST: one bad frame must never stop the game
   const dt=Math.max(0,Math.min(.05,(now-last)/1000));last=now;
-  if(G.state!=='paused')update(dt);
-  render();requestAnimationFrame(frame);
+  try{
+    if(G.state!=='paused')update(dt);
+    render();
+  }catch(e){if(!frame.warned){frame.warned=1;console.error('frame error (recovered):',e)}}
 }
 if(document.fonts&&document.fonts.load)document.fonts.load('700 20px Rajdhani').catch(()=>{});
 demoReset();hudUpdate();hsUpdate();requestAnimationFrame(frame);
