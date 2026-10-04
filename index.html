@@ -371,11 +371,16 @@ function countUp(el,to,ms){const t0=performance.now();(function f(){const u=Math
 
 /* ================= AUDIO (Web Audio, generated) ================= */
 let AC=null,master=null,muted=store.get('cube-mute','0')==='1';
-function audio(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=muted?0:.5;master.connect(AC.destination)}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
+function audio(){
+  // if the browser force-muted the corner feed to allow autoplay, the first real input wins the sound back
+  const fv=$('vfv');if(fv&&fv.muted&&!muted&&$('vfeed').classList.contains('on'))fv.muted=false;
+  if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=muted?0:.5;master.connect(AC.destination)}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
 function tone(f,d,type,v,f2){if(!AC||muted)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(master);o.start(t);o.stop(t+d+.02)}
 function noise(d,v,f){if(!AC||muted)return;const n=AC.sampleRate*d|0,b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();s.buffer=b;fl.type='lowpass';fl.frequency.value=f;g.gain.value=v;s.connect(fl);fl.connect(g);g.connect(master);s.start()}
 const sfx={ui(){tone(520,.07,'sine',.08,720)},move(){tone(140+rnd(0,20),.05,'triangle',.03)},spawn(){tone(210,.06,'sine',.016,150)},land(){tone(110,.18,'sine',.14,45)},near(){tone(620,.16,'sine',.09,1400);tone(1240,.1,'triangle',.03)},death(){noise(.7,.5,900);tone(180,.6,'sawtooth',.12,35)}};
-function setMute(m){muted=m;store.set('cube-mute',m?'1':'0');if(master)master.gain.value=m?0:.5;muteBtn.classList.toggle('off',m);muteBtn.setAttribute('aria-pressed',m?'true':'false')}
+function setMute(m){muted=m;store.set('cube-mute',m?'1':'0');if(master)master.gain.value=m?0:.5;
+  const fv=$('vfv');if(fv)fv.muted=m;                          // the corner feed is a DOM element, not on the master gain
+  muteBtn.classList.toggle('off',m);muteBtn.setAttribute('aria-pressed',m?'true':'false')}
 setMute(muted);
 
 /* ================= GLOW SPRITES (cheap bloom) ================= */
@@ -511,7 +516,8 @@ function drawText(){
     ctx.font='700 '+f.s+'px '+FF;A(a);ctx.fillStyle=f.c;ctx.save();ctx.translate(f.x,f.y);ctx.scale(k,k);ctx.fillText(f.t,0,0);ctx.restore()}
   ctx.restore();A(1);
 }
-function resetArm(){for(const k in U)U[k]=0;for(let i=0;i<BN;i++)bul[i].on=0;for(let i=0;i<PKN;i++)pks[i].on=0;knightReset();aquaReset();bridgeReset();lavaPreload();lavaSound(false);clearHaz();F.on=false;F.la=0;setKeyLabel(0);P.z=P.jt=0;fireCd=0;P.inv=0;P.gl=P.tk=0;gt=0;tpi=-1;tmSec=-1;thrLv=0;upsHud()}
+function resetArm(){for(const k in U)U[k]=0;U.shield=3;        // start every run with a full set of shields
+  for(let i=0;i<BN;i++)bul[i].on=0;for(let i=0;i<PKN;i++)pks[i].on=0;knightReset();aquaReset();bridgeReset();lavaPreload();lavaSound(false);clearHaz();F.on=false;F.la=0;setKeyLabel(0);P.z=P.jt=0;fireCd=0;P.inv=0;P.gl=P.tk=0;gt=0;tpi=-1;tmSec=-1;thrLv=0;upsHud()}
 function fireBullet(x,y,a,d,p){for(let i=0;i<BN;i++){const b=bul[i];if(b.on)continue;b.on=1;b.x=x;b.y=y;b.vx=Math.cos(a)*900;b.vy=Math.sin(a)*900;b.l=1.4;b.d=d;b.p=p;return}}
 function stepShoot(dt){
   if(BR.on)return;                                        // the fire key is the Quick Embrace input here
@@ -1527,67 +1533,46 @@ function stepBridge(dt){
    hold the character as a silhouette with the glow streaming off them. --- */
 function drawBridge(){
   const en=BR.en,sc=BR.prog*3400,DB=DKY+DKH;
+  const asm=BR.st==='intro'?clamp((BR.t-.5)/1.9,0,1):1;            // the platform lays itself out from the middle
   ctx.save();rr(0,0,AW,AH,26);ctx.clip();
-  // sky: brightest just above the deck, falling away up and down
+  // sky: brightest just above the walkway, falling away up and down
   let g=ctx.createLinearGradient(0,0,0,AH);
-  g.addColorStop(0,'#2a1a0b');g.addColorStop(.3,'#6b4418');g.addColorStop(.58,'#bc843e');
+  g.addColorStop(0,'#2a1a0b');g.addColorStop(.32,'#6b4418');g.addColorStop(.58,'#bc843e');
   g.addColorStop(.63,'#8a5a26');g.addColorStop(1,'#120b05');
   A(1);ctx.fillStyle=g;ctx.fillRect(0,0,AW,AH);
   ctx.globalCompositeOperation='lighter';
   for(let k=0;k<6;k++){const r=250+110*Math.sin(clock*.33+k*1.2);A(.1+.05*Math.sin(clock*.8+k));
     ctx.drawImage(glowA,AW*(.5+.54*Math.sin(clock*.12+k*2.3))-r,DKY*(.45+.3*Math.cos(clock*.1+k*1.5))-r,r*2,r*2)}
-  ctx.globalCompositeOperation='source-over';
-  // a second span far behind, drifting slower
-  ctx.strokeStyle='rgba(40,26,13,.5)';ctx.lineWidth=3;
-  const foff=(sc*.28)%SPAN;
-  for(let i=-1;i<Math.ceil(AW/SPAN)+1;i++){const tx=i*SPAN-foff+120;
-    ctx.beginPath();ctx.moveTo(tx,DKY-150);ctx.quadraticCurveTo(tx+SPAN/2,DKY-54,tx+SPAN,DKY-150);ctx.stroke();
-    ctx.fillStyle='rgba(40,26,13,.45)';ctx.fillRect(tx-5,DKY-170,10,140)}
-  ctx.fillStyle='rgba(44,28,14,.4)';ctx.fillRect(0,DKY-34,AW,10);
-
-  // --- the span proper: towers, main cable, hangers, all scrolling as ground is gained ---
-  const off=sc%SPAN,n=Math.ceil(AW/SPAN)+2;
-  ctx.lineCap='round';
-  for(let i=-1;i<n;i++){
-    const tx=i*SPAN-off,nx=tx+SPAN,top=DKY-TOWH;
-    ctx.strokeStyle='rgba(13,8,5,.95)';ctx.lineWidth=7;
-    ctx.beginPath();ctx.moveTo(tx,top);ctx.quadraticCurveTo(tx+SPAN/2,DKY-34,nx,top);ctx.stroke();
-    ctx.strokeStyle='rgba(140,255,185,'+(.14+.32*en)+')';ctx.lineWidth=2.1;   // energy running the cable
-    ctx.beginPath();ctx.moveTo(tx,top);ctx.quadraticCurveTo(tx+SPAN/2,DKY-34,nx,top);ctx.stroke();
-    ctx.strokeStyle='rgba(13,8,5,.8)';ctx.lineWidth=2.4;ctx.beginPath();
-    for(let h=1;h<10;h++){const u=h/10,hx=tx+SPAN*u,
-      hy=(1-u)*(1-u)*top+2*(1-u)*u*(DKY-34)+u*u*top;
-      if(hx<-20||hx>AW+20)continue;ctx.moveTo(hx,hy);ctx.lineTo(hx,DKY)}
-    ctx.stroke();
-    if(tx>-110&&tx<AW+110){   // tower: rises from the deck, crossbraced
-      ctx.fillStyle='rgba(11,7,4,.97)';
-      ctx.fillRect(tx-13,top-30,10,DB-top+96);ctx.fillRect(tx+4,top-30,10,DB-top+96);
-      ctx.fillStyle='rgba(228,166,92,.42)';ctx.fillRect(tx-13,top-30,3,DB-top+96);
-      ctx.fillStyle='rgba(11,7,4,.97)';
-      for(let b=0;b<4;b++)ctx.fillRect(tx-13,top+8+b*58,27,9);
-      A(.3*en);ctx.globalCompositeOperation='lighter';
-      ctx.drawImage(glowG,tx-74,top-86,148,148);ctx.globalCompositeOperation='source-over';A(1)}
-  }
-
-  // --- the deck slab you are standing on ---
+  ctx.globalCompositeOperation='source-over';A(1);   // the haze loop leaves alpha low; the slab must be opaque
+  if(asm<=0){ctx.restore();return}
+  const hw=AW*.5*asm,x0=AW*.5-hw,x1=AW*.5+hw;                      // it grows out from the centre during the intro
+  // the slab itself
   g=ctx.createLinearGradient(0,DKY,0,DB);
-  g.addColorStop(0,'#38251a');g.addColorStop(.18,'#17100a');g.addColorStop(1,'#070403');
-  ctx.fillStyle=g;ctx.fillRect(0,DKY,AW,DKH);
-  ctx.strokeStyle='rgba(228,170,98,.1)';ctx.lineWidth=1.2;ctx.beginPath();   // plating
-  for(let x=-((sc*.8)%74);x<AW+74;x+=74){ctx.moveTo(x,DKY);ctx.lineTo(x,DB)}
+  g.addColorStop(0,'#2a1c14');g.addColorStop(.14,'#0c0806');g.addColorStop(1,'#040202');
+  ctx.fillStyle=g;ctx.fillRect(x0,DKY,hw*2,DKH);
+  // plating seams sliding past, so the ground you are covering is visible
+  ctx.save();ctx.beginPath();ctx.rect(x0,DKY,hw*2,DKH);ctx.clip();
+  ctx.strokeStyle='rgba(228,170,98,.13)';ctx.lineWidth=1.4;ctx.beginPath();
+  for(let x=-((sc*.8)%92);x<AW+92;x+=92){ctx.moveTo(x,DKY);ctx.lineTo(x,DB)}
   ctx.stroke();
-  ctx.strokeStyle='rgba(252,206,140,.95)';ctx.lineWidth=2.6;                 // the lit running surface
-  ctx.beginPath();ctx.moveTo(0,DKY);ctx.lineTo(AW,DKY);ctx.stroke();
-  ctx.globalCompositeOperation='lighter';A(.42);ctx.drawImage(glowA,-100,DKY-82,AW+200,104);
+  ctx.strokeStyle='rgba(228,170,98,.07)';ctx.lineWidth=1;ctx.beginPath();
+  ctx.moveTo(0,DKY+DKH*.55);ctx.lineTo(AW,DKY+DKH*.55);ctx.stroke();
+  ctx.restore();
+  // the lit surface you walk on
+  ctx.strokeStyle='rgba(255,224,172,1)';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(x0,DKY);ctx.lineTo(x1,DKY);ctx.stroke();
+  ctx.strokeStyle='rgba(120,74,32,.9)';ctx.lineWidth=2;                 // shadowed lip just under it
+  ctx.beginPath();ctx.moveTo(x0,DKY+3);ctx.lineTo(x1,DKY+3);ctx.stroke();
+  ctx.globalCompositeOperation='lighter';A(.22*asm);ctx.drawImage(glowA,x0-40,DKY-46,hw*2+80,62);
   ctx.globalCompositeOperation='source-over';A(1);
-  ctx.strokeStyle='rgba(150,255,195,'+(.22+.4*en)+')';ctx.lineWidth=1.6;     // energy seam under the surface
-  ctx.beginPath();ctx.moveTo(0,DKY+9);ctx.lineTo(AW,DKY+9);ctx.stroke();
-  ctx.strokeStyle='rgba(9,6,3,.85)';ctx.lineWidth=2.2;ctx.beginPath();       // trusses falling away below
-  for(let x=-((sc*.8)%104);x<AW+104;x+=104){
-    ctx.moveTo(x,DB);ctx.lineTo(x+52,DB+46);ctx.moveTo(x+104,DB);ctx.lineTo(x+52,DB+46);ctx.moveTo(x,DB+2);ctx.lineTo(x+104,DB+2)}
-  ctx.stroke();
-  const vd=ctx.createLinearGradient(0,DB,0,AH);                             // the drop below the span
-  vd.addColorStop(0,'rgba(8,5,3,.55)');vd.addColorStop(.45,'rgba(6,4,2,.9)');vd.addColorStop(1,'rgba(4,2,1,.98)');
+  // energy seam running its length
+  ctx.strokeStyle='rgba(150,255,195,'+(.3+.5*en)+')';ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(x0,DKY+12);ctx.lineTo(x1,DKY+12);ctx.stroke();
+  // bottom edge, then the drop
+  ctx.strokeStyle='rgba(10,7,4,.9)';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x0,DB);ctx.lineTo(x1,DB);ctx.stroke();
+  const vd=ctx.createLinearGradient(0,DB,0,AH);
+  vd.addColorStop(0,'rgba(6,4,2,.85)');vd.addColorStop(.45,'rgba(6,4,2,.92)');vd.addColorStop(1,'rgba(4,2,1,.98)');
   A(1);ctx.fillStyle=vd;ctx.fillRect(0,DB,AW,AH-DB);
   ctx.restore();
 }
@@ -1606,11 +1591,13 @@ function drawBridgeFore(){
     const sd=i*127.1,q=((clock*(.46+BR.w*.54)+((sd*.0137)%1))%1),
       y=((sd*.0391)%1)*AH,x=AW+180-q*(AW+360),
       L=90+BR.w*165*(.4+((sd*.0071)%1)),near=Math.abs(y-DKY)<70;
+    if(y>DKY&&y<DB)continue;
     A((.07+.26*BR.w)*Math.sin(q*Math.PI)*(.45+.55*((sd*.0213)%1))*(near?.75:1));
     ctx.strokeStyle=near?'rgba(255,220,170,1)':'rgba(255,176,96,1)';
     ctx.lineWidth=.9+1.6*((sd*.0053)%1);
     ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+L,y+BR.g*3);ctx.stroke()}
   for(let i=0;i<BR.dust.length;i++){const d=BR.dust[i];
+    if(d.y>DKY&&d.y<DB)continue;
     A(.12+.4*d.z);ctx.fillStyle=Math.abs(d.y-DKY)<60?'rgba(180,255,205,1)':'rgba(255,196,130,1)';
     ctx.fillRect(d.x,d.y,d.s*d.z*2.4,d.s*d.z)}
   ctx.globalCompositeOperation='source-over';A(1);
@@ -1726,7 +1713,13 @@ function feedRaw(u){
   return u;
 }
 const FEEDSRC=[feedRaw(FEED_URL),'bridge-feed.mp4','bridge-feed.webm'].filter(Boolean);
-function feedSet(u){feedV.src=u;try{feedV.load()}catch(e){}const pr=feedV.play();if(pr&&pr.catch)pr.catch(()=>{})}
+function feedSet(u){
+  feedV.src=u;try{feedV.load()}catch(e){}
+  feedV.muted=muted;feedV.volume=.8;
+  const pr=feedV.play();
+  // if the browser refuses audible autoplay, take it muted rather than losing the video
+  if(pr&&pr.catch)pr.catch(()=>{feedV.muted=true;const p2=feedV.play();if(p2&&p2.catch)p2.catch(()=>{})});
+}
 // GitHub hands raw files back as application/octet-stream, which some browsers refuse to play.
 // If the plain src is rejected, pull the bytes down and re-label them before handing them over.
 function feedRetype(u){
@@ -1786,7 +1779,7 @@ function feedShow(on){
   if(on){
     feedEl.classList.add('on');
     if(!feedTried){feedTried=true;feedTry()}
-    else{const pr=feedV.play();if(pr&&pr.catch)pr.catch(()=>{})}
+    else{feedV.muted=muted;const pr=feedV.play();if(pr&&pr.catch)pr.catch(()=>{feedV.muted=true;feedV.play().catch(()=>{})})}
     if(!feedRAF){feedLast=performance.now();feedRAF=requestAnimationFrame(feedPaint)}
   }else{
     feedEl.classList.remove('on');
@@ -1827,8 +1820,9 @@ function toMenu(){   // back to the title screen; the AI-piloted demo takes over
   Object.assign(G,{state:'menu',ev:null,evT:32,diff:0,speed:210,bonus:0,score:0,fl:0,fc:0,tr:0,nmCd:0,upT:8,chain:0,chainT:0});
   freeze=0;slowT=0;ts=1;demoReset();hudEl.classList.remove('on');nameplate(false);hsUpdate();show('menu');
 }
-function pause(){if(G.state!=='play')return;G.state='paused';if(AC&&(MUS.h||K.vac||K.roar||LVS.h||BR.wind))AC.suspend();for(const k in keys)keys[k]=0;show('pause')}
-function resume(){audio();G.state='play';show(null)}
+function pause(){if(G.state!=='play')return;G.state='paused';try{$('vfv').pause()}catch(e){}
+  if(AC&&(MUS.h||K.vac||K.roar||LVS.h||BR.wind))AC.suspend();for(const k in keys)keys[k]=0;show('pause')}
+function resume(){audio();G.state='play';show(null);if(BR.on)feedShow(true)}
 function act(a){audio();if(a==='install'){doInstall();return}if(a==='play'||a==='retry'||a==='restart')start();else if(a==='resume')resume();else if(a==='menu')toMenu()}
 
 /* ================= UPDATE ================= */
