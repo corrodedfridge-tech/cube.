@@ -302,6 +302,21 @@ const KA={img:{ball1:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAvIAAAKNCAYA
 <script>
 (()=>{
 'use strict';
+
+/* ===========================================================================
+   >>> CORNER VIDEO — THIS IS THE LINE TO EDIT <<<
+
+   Paste a link to your clip between the quotes. A normal GitHub page link
+   works — the one you get from the "Copy link" button on the file, e.g.
+     https://github.com/corrodedfridge-tech/cube./blob/main/my-clip.mp4
+   A direct link to any .mp4 or .webm works too.
+   Leave it as '' and the panel draws its own animation instead.
+
+   Use H.264 .mp4 or VP9 .webm — HEVC/H.265 only plays in Safari.
+=========================================================================== */
+const FEED_URL = '';
+/* ======================================================================== */
+
 /* ================= UTIL ================= */
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2,rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t;
@@ -1331,34 +1346,34 @@ if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))
 
 
 /* ================= THE GRAVITY BRIDGE (one-time encounter) ================= */
-// Runs as the 'bridge' super event. A span of gravitational energy assembles across the void and
-// the player has to walk its length while a crushing downforce drags them toward the lower edge
-// and a gale blows right-to-left, back toward where they started. No jumping, no shooting: the
-// fire key is the Quick Embrace input. Stamina is the only way to die here.
+// Runs as the 'bridge' super event, drawn as a flat 2D side elevation: the deck is a surface you
+// stand ON, the towers and cables rise above it, the void falls away below. A crushing downforce
+// pins you to the deck and makes you heavy; a gale blows right-to-left, back toward where you
+// started. No jumping, no shooting -- the fire key is the Quick Embrace input, and stamina is the
+// only way to die here.
 //
-// Modular on purpose — everything lives behind BR.* and the five entry points
+// Modular on purpose: everything lives behind BR.* and the five entry points
 // (startBridge / stepBridge / drawBridge / drawBridgeFore / drawPlayerEnergy).
 const glowG=glow('96,255,150'),glowA=glow('255,176,86');       // energy green, and the warm haze behind it
-const DECK={cy:AH*.56,h0:170,h1:112};                           // deck half-height, start -> end
-const BSEC=[   // wind, gravity, deck tightness, energy, name
-  {w:1.00,g:1.00,d:0.00,e:.55,n:'The span forms'},
-  {w:1.28,g:1.22,d:0.22,e:.70,n:'Heavier'},
-  {w:1.55,g:1.45,d:0.48,e:.85,n:'Unstable'},
-  {w:1.82,g:1.68,d:0.76,e:1.00,n:'It will not hold'},
-  {w:2.05,g:1.88,d:1.00,e:1.20,n:'The far side'}
+const DKY=AH*.62,DKH=92,TOWH=232,SPAN=620;                      // deck surface, slab depth, tower height, bay width
+const BSEC=[   // wind, gravity, energy, name
+  {w:1.00,g:1.00,e:.55,n:'The span forms'},
+  {w:1.28,g:1.26,e:.70,n:'Heavier'},
+  {w:1.55,g:1.52,e:.85,n:'Unstable'},
+  {w:1.82,g:1.78,e:1.00,n:'It will not hold'},
+  {w:2.05,g:2.00,e:1.20,n:'The far side'}
 ];
 const BSEG=[0,.2,.4,.6,.85,1.01];                               // prog boundaries for those five
-const QEAT=[.10,.22,.34,.46,.58,.70,.81,.91];                           // where a Quick Embrace is waiting
-const WSPD=168,GSPD=150,PRATE=.040;                             // wind drift, gravity drift, crossing rate
+const QEAT=[.10,.22,.34,.46,.58,.70,.81,.91];                   // where a Quick Embrace is waiting
+const WSPD=142,HVY=.22,PRATE=.040;                              // wind drift, weight drag, crossing rate
+const FOOT=()=>DKY-P.s/2;                                       // the player's feet rest on the deck
 const BR={on:false,st:'gone',t:0,prog:0,stam:100,sect:-1,w:1,g:1,en:.55,
-  gust:0,gustT:3,qe:null,qi:0,low:0,warn:0,flash:0,push:0,off:0,
-  dust:[],deb:[],rib:[],aura:[],trail:[],hum:null,wind:null,done:false};
-for(let i=0;i<70;i++)BR.dust.push({x:rnd(0,AW),y:rnd(0,AH),z:rnd(.3,1),s:rnd(1,3)});
-for(let i=0;i<26;i++)BR.deb.push({x:rnd(0,AW),y:rnd(0,AH),vy:0,r:rnd(0,TAU),vr:rnd(-2,2),s:rnd(5,16),z:rnd(.45,1)});
-for(let i=0;i<34;i++)BR.aura.push({a:rnd(0,TAU),r:rnd(16,46),sp:rnd(.6,2.4)*(Math.random()<.5?1:-1),ph:rnd(0,TAU),s:rnd(1.4,3.4)});
+  gust:0,gustT:3,qe:null,qi:0,low:0,flash:0,push:0,off:0,bob:0,
+  dust:[],deb:[],rib:[],aura:[],trail:[],hum:null,wind:null,pf:false};
+for(let i=0;i<72;i++)BR.dust.push({x:rnd(0,AW),y:rnd(0,AH),z:rnd(.3,1),s:rnd(1,3)});
+for(let i=0;i<24;i++)BR.deb.push({x:rnd(0,AW),y:rnd(0,DKY),vy:0,r:rnd(0,TAU),vr:rnd(-2,2),s:rnd(5,15),z:rnd(.45,1)});
+for(let i=0;i<34;i++)BR.aura.push({a:rnd(0,TAU),r:rnd(15,42),sp:rnd(.6,2.4)*(Math.random()<.5?1:-1),ph:rnd(0,TAU),s:rnd(1.4,3.4)});
 for(let i=0;i<14;i++)BR.trail.push({x:0,y:0,l:0});
-const deckH=()=>lerp(DECK.h0,DECK.h1,BR.sect<0?0:BSEC[BR.sect].d);
-const deckTop=()=>DECK.cy-deckH(),deckBot=()=>DECK.cy+deckH();
 
 /* --- procedural ambience: a wind bed and a gravity drone, both through the master gain --- */
 function noiseBuf(sec){const n=AC.sampleRate*sec|0,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);
@@ -1390,11 +1405,11 @@ function bridgeAudioLevel(wind,grav){
 /* --- lifecycle --- */
 function startBridge(){
   G.bForce=false;BR.on=true;BR.t=0;BR.prog=0;BR.stam=100;BR.sect=-1;BR.qe=null;BR.qi=0;
-  BR.gust=0;BR.gustT=4;BR.low=0;BR.warn=0;BR.flash=0;BR.push=0;BR.off=0;BR.w=1;BR.g=1;BR.en=0;
+  BR.gust=0;BR.gustT=4;BR.low=0;BR.flash=0;BR.push=0;BR.off=0;BR.bob=0;BR.w=1;BR.g=1;BR.en=0;
   for(let i=0;i<BR.trail.length;i++)BR.trail[i].l=0;
   BR.rib.length=0;for(let i=0;i<16;i++)BR.rib.push({p:i/16,on:0});
   BR.st='intro';P.inv=99;P.z=0;P.jt=0;                              // nothing else can touch the player here
-  Object.assign(P,{x:AW*.22,y:DECK.cy,vx:0,vy:0});
+  Object.assign(P,{x:AW*.22,y:FOOT(),vx:0,vy:0});
   stamHud(true);feedShow(true);bridgeAudioStart();
   toast('The Gravity Bridge','Cross it');nameplate(true,'The Gravity Bridge');
   shake(.5);G.fl=Math.max(G.fl,.2);G.fc=0;slow(.5,.3);sfx.bform();
@@ -1413,10 +1428,7 @@ function bridgeReset(){
 }
 
 /* --- Quick Embrace: a ring collapses onto a target band, hit FIRE inside it --- */
-function qeStart(){
-  BR.qe={t:0,dur:lerp(1.5,1.12,BR.prog),res:0,ht:0};
-  sfx.qecall();G.fl=Math.max(G.fl,.05);G.fc=0;
-}
+function qeStart(){BR.qe={t:0,dur:lerp(1.5,1.12,BR.prog),res:0,ht:0};sfx.qecall();G.fl=Math.max(G.fl,.05);G.fc=0}
 function qeResolve(ok){
   const q=BR.qe;q.res=ok?1:-1;q.ht=0;
   if(ok){BR.stam=Math.min(100,BR.stam+34);BR.flash=Math.max(BR.flash,.5);shake(.3);slow(.16,.38);
@@ -1448,32 +1460,31 @@ function stepBridge(dt){
   if(BR.gust>0)BR.gust=Math.max(0,BR.gust-dt*.8);
 
   switch(BR.st){
-  case 'intro':{   // the span assembles rib by rib out of the void, then hands over control
+  case 'intro':{   // the span assembles bay by bay out of the void, then hands over control
     const u=clamp(BR.t/2.6,0,1);
     for(let i=0;i<BR.rib.length;i++)BR.rib[i].on=clamp((u*1.5-Math.abs(BR.rib[i].p-.5)*1.3)*3,0,1);
     G.tr=Math.max(G.tr,.1+.22*(1-u));
+    P.y=FOOT();P.vy=0;
     if(BR.t>1.1&&BR.t<1.2){shake(.45);G.fl=Math.max(G.fl,.16);G.fc=0;sfx.bsnap()}
     if(BR.t>=3.1){BR.st='cross';BR.sect=-1;BR.flash=.5;shake(.35);sfx.bgo()}
     break}
   case 'cross':{
-    // environment drags: applied as drift after the player's own movement, so input stays crisp
-    const wind=BR.w*WSPD,grav=BR.g*GSPD;
-    P.x-=wind*dt;P.y+=grav*dt;
-    const dt_=deckTop(),db=deckBot();
-    if(P.y<dt_){P.y=dt_;P.vy=Math.max(P.vy,0)}                    // the upwind rail is solid, not a hazard
-    BR.off=P.y>db?Math.min(1,(P.y-db)/72):0;                      // only the downhill edge is a fall
-    if(BR.off>0)P.y-=BR.off*70*dt;                                // the field claws you back toward the deck
-    if(P.y>db+80){P.y=db+80;P.vy=Math.min(P.vy,0)}
+    // side view: you are standing ON the deck, so the fight is purely horizontal. Gravity does not
+    // drop you off anything -- it makes you heavy, dragging at whatever speed you build up.
+    P.y=FOOT();P.vy=0;
+    P.x-=BR.w*WSPD*dt;                                            // the gale, pushing you back
+    P.x-=P.vx*HVY*(BR.g-1)*dt;                                    // the weight, resisting every move
     P.x=clamp(P.x,46,AW-46);
-    // progress: standing to the right of the line gains ground, being blown left loses it
+    BR.bob=damp(BR.bob,BR.g-1,5,dt);
+    // progress: ground is only gained to the right of the line, and lost when you are driven back
     BR.push=clamp((P.x-AW*.30)/(AW*.34),-1,1);
     BR.prog=clamp(BR.prog+(BR.push>0?BR.push*PRATE:BR.push*PRATE*.55)*dt,0,1);
+    BR.off=P.x<AW*.19?clamp((AW*.19-P.x)/(AW*.14),0,1):0;         // pinned against the upwind end
     // stamina
-    let drain=lerp(2.0,3.6,BR.prog)+(keys.r||(tmv>=0&&tax>.25)?1.8:0)+BR.off*7;
+    let drain=lerp(2.0,3.6,BR.prog)+(keys.r||(tmv>=0&&tax>.25)?1.8:0)+BR.off*5;
     if(!keys.r&&tax<=.25&&BR.off<.05)drain-=4.0;                  // easing off is a real breather
     BR.stam=clamp(BR.stam-drain*dt,0,100);
     if(BR.stam<28){BR.low+=dt;if(BR.low>.75){BR.low=0;sfx.stamlow()}}else BR.low=0;
-    // quick embrace checkpoints
     if(!BR.qe&&BR.qi<QEAT.length&&BR.prog>=QEAT[BR.qi]){BR.qi++;qeStart()}
     stepQE(dt);
     G.tr=Math.max(G.tr,.06+.12*BR.g*(1+BR.gust));
@@ -1483,14 +1494,14 @@ function stepBridge(dt){
     break}
   case 'win':{     // gravity lets go, the wind dies, the span lights end to end
     const u=clamp(BR.t/2.8,0,1);
-    P.x+=260*dt*(1-u);P.y=damp(P.y,DECK.cy,3,dt);
+    P.y=FOOT();P.vy=0;P.x+=260*dt*(1-u);
     if(BR.t<.1)for(let i=0;i<70;i++){const a=rnd(0,TAU),v=rnd(260,760);emit(P.x,P.y,Math.cos(a)*v,Math.sin(a)*v,1.1,4,2,1.6)}
     if(BR.t>1.5&&BR.t<1.56){G.fl=Math.max(G.fl,.5);G.fc=0;shake(.4)}
     if(u>=1){bridgeEnd();return}
     break}
-  default:{        // fail: the energy implodes and the gravity finishes the job
+  default:{        // fail: the energy implodes and the weight finishes the job
     const u=clamp(BR.t/1.5,0,1);
-    P.y+=240*dt*u;P.qx=.3*u;P.qy=-.45*u;P.qxv=P.qyv=0;
+    P.y=FOOT()+10*u;P.vy=0;P.qx=.34*u;P.qy=-.5*u;P.qxv=P.qyv=0;
     G.tr=Math.max(G.tr,.3+.4*u);
     if(BR.t<.08)for(let i=0;i<46;i++){const a=rnd(0,TAU),q=rnd(90,220);emit(P.x+Math.cos(a)*q,P.y+Math.sin(a)*q,-Math.cos(a)*q*3.4,-Math.sin(a)*q*3.4,.55,3.4,2,1.2)}
     if(u>=1){bridgeAbort();die();return}
@@ -1498,112 +1509,109 @@ function stepBridge(dt){
   }
   BR.pf=!!keys.f;
   BR.flash=Math.max(0,BR.flash-dt*2.2);
-  // trail + aura particles
   const tr=BR.trail[(BR.t*22|0)%BR.trail.length];tr.x=P.x;tr.y=P.y;tr.l=.42;
   for(let i=0;i<BR.trail.length;i++)if(BR.trail[i].l>0)BR.trail[i].l-=dt;
-  // world motes blown leftward and pressed down
+  // motes and debris blown down the span, and pressed toward the deck
   for(let i=0;i<BR.dust.length;i++){const d=BR.dust[i];
-    d.x-=(140+BR.w*230)*d.z*dt;d.y+=BR.g*34*d.z*dt;
-    if(d.x<-20){d.x=AW+20;d.y=rnd(0,AH)}if(d.y>AH+20)d.y=-20}
+    d.x-=(140+BR.w*250)*d.z*dt;d.y+=BR.g*30*d.z*dt;
+    if(d.x<-20){d.x=AW+20;d.y=rnd(0,DKY)}if(d.y>DKY+DKH)d.y=-20}
   for(let i=0;i<BR.deb.length;i++){const b=BR.deb[i];
-    b.x-=(90+BR.w*300)*b.z*dt;b.vy=Math.min(b.vy+BR.g*150*dt,BR.g*170);b.y+=b.vy*dt;b.r+=b.vr*dt;
-    if(b.x<-40||b.y>AH+40){b.x=AW+rnd(10,120);b.y=rnd(-30,AH*.7);b.vy=0}}
+    b.x-=(90+BR.w*320)*b.z*dt;b.vy=Math.min(b.vy+BR.g*170*dt,BR.g*200);b.y+=b.vy*dt;b.r+=b.vr*dt;
+    if(b.y>DKY-b.s*.5*b.z&&b.y<DKY+26){b.y=DKY-b.s*.5*b.z;b.vy=-b.vy*.22;b.vr*=.6}   // bounces along the deck
+    if(b.x<-40||b.y>AH+40){b.x=AW+rnd(10,140);b.y=rnd(-40,DKY*.6);b.vy=0;b.vr=rnd(-2,2)}}
   stamHud();
 }
 
-/* --- drawing: the span, built to the sketch. Towers and a sagging main cable carry a dark deck
-   across a warm amber haze; the green is kept for the energy coming off the player, the way the
-   reference frames hold the character as a silhouette with the glow streaming off them. --- */
-const SPAN=620,TOWH=140;
+/* --- drawing: the span in elevation. Towers and a sagging main cable carry a dark deck across a
+   warm haze; the green is kept for the energy coming off the player, the way the reference frames
+   hold the character as a silhouette with the glow streaming off them. --- */
 function drawBridge(){
-  const dt_=deckTop(),db=deckBot(),en=BR.en,sc=BR.prog*3400;
+  const en=BR.en,sc=BR.prog*3400,DB=DKY+DKH;
   ctx.save();rr(0,0,AW,AH,26);ctx.clip();
-  // amber atmosphere: brightest in a band behind the span, falling away above and below
+  // sky: brightest just above the deck, falling away up and down
   let g=ctx.createLinearGradient(0,0,0,AH);
-  g.addColorStop(0,'#2a1a0b');g.addColorStop(.26,'#6b4418');g.addColorStop(.46,'#b8803c');
-  g.addColorStop(.62,'#8a5a26');g.addColorStop(1,'#1d1208');
+  g.addColorStop(0,'#2a1a0b');g.addColorStop(.3,'#6b4418');g.addColorStop(.58,'#bc843e');
+  g.addColorStop(.63,'#8a5a26');g.addColorStop(1,'#120b05');
   A(1);ctx.fillStyle=g;ctx.fillRect(0,0,AW,AH);
   ctx.globalCompositeOperation='lighter';
-  for(let k=0;k<6;k++){const r=260+110*Math.sin(clock*.33+k*1.2);A(.1+.05*Math.sin(clock*.8+k));
-    ctx.drawImage(glowA,AW*(.5+.54*Math.sin(clock*.12+k*2.3))-r,AH*(.42+.3*Math.cos(clock*.1+k*1.5))-r,r*2,r*2)}
+  for(let k=0;k<6;k++){const r=250+110*Math.sin(clock*.33+k*1.2);A(.1+.05*Math.sin(clock*.8+k));
+    ctx.drawImage(glowA,AW*(.5+.54*Math.sin(clock*.12+k*2.3))-r,DKY*(.45+.3*Math.cos(clock*.1+k*1.5))-r,r*2,r*2)}
   ctx.globalCompositeOperation='source-over';
+  // a second span far behind, drifting slower
+  ctx.strokeStyle='rgba(40,26,13,.5)';ctx.lineWidth=3;
+  const foff=(sc*.28)%SPAN;
+  for(let i=-1;i<Math.ceil(AW/SPAN)+1;i++){const tx=i*SPAN-foff+120;
+    ctx.beginPath();ctx.moveTo(tx,DKY-150);ctx.quadraticCurveTo(tx+SPAN/2,DKY-54,tx+SPAN,DKY-150);ctx.stroke();
+    ctx.fillStyle='rgba(40,26,13,.45)';ctx.fillRect(tx-5,DKY-170,10,140)}
+  ctx.fillStyle='rgba(44,28,14,.4)';ctx.fillRect(0,DKY-34,AW,10);
 
-  // --- suspension: towers, main cable, hangers; all of it scrolling as ground is gained ---
+  // --- the span proper: towers, main cable, hangers, all scrolling as ground is gained ---
   const off=sc%SPAN,n=Math.ceil(AW/SPAN)+2;
   ctx.lineCap='round';
   for(let i=-1;i<n;i++){
-    const tx=i*SPAN-off,nx=tx+SPAN,top=dt_-TOWH;
-    // main cable sagging between this tower and the next
-    ctx.strokeStyle='rgba(14,9,5,.95)';ctx.lineWidth=7;
-    ctx.beginPath();ctx.moveTo(tx,top);ctx.quadraticCurveTo(tx+SPAN/2,dt_+14,nx,top);ctx.stroke();
+    const tx=i*SPAN-off,nx=tx+SPAN,top=DKY-TOWH;
+    ctx.strokeStyle='rgba(13,8,5,.95)';ctx.lineWidth=7;
+    ctx.beginPath();ctx.moveTo(tx,top);ctx.quadraticCurveTo(tx+SPAN/2,DKY-34,nx,top);ctx.stroke();
     ctx.strokeStyle='rgba(140,255,185,'+(.14+.32*en)+')';ctx.lineWidth=2.1;   // energy running the cable
-    ctx.beginPath();ctx.moveTo(tx,top);ctx.quadraticCurveTo(tx+SPAN/2,dt_+14,nx,top);ctx.stroke();
-    // hangers dropping from the cable to the deck
-    ctx.strokeStyle='rgba(16,10,6,.75)';ctx.lineWidth=2.2;ctx.beginPath();
-    for(let h=1;h<9;h++){const u=h/9,hx=tx+SPAN*u,
-      hy=(1-u)*(1-u)*top+2*(1-u)*u*(dt_+14)+u*u*top;
-      if(hx<-20||hx>AW+20)continue;ctx.moveTo(hx,hy);ctx.lineTo(hx,dt_)}
+    ctx.beginPath();ctx.moveTo(tx,top);ctx.quadraticCurveTo(tx+SPAN/2,DKY-34,nx,top);ctx.stroke();
+    ctx.strokeStyle='rgba(13,8,5,.8)';ctx.lineWidth=2.4;ctx.beginPath();
+    for(let h=1;h<10;h++){const u=h/10,hx=tx+SPAN*u,
+      hy=(1-u)*(1-u)*top+2*(1-u)*u*(DKY-34)+u*u*top;
+      if(hx<-20||hx>AW+20)continue;ctx.moveTo(hx,hy);ctx.lineTo(hx,DKY)}
     ctx.stroke();
-    // the tower itself
-    if(tx>-90&&tx<AW+90){
-      ctx.fillStyle='rgba(12,8,5,.95)';ctx.fillRect(tx-11,top-26,22,db-top+70);
-      ctx.fillStyle='rgba(222,160,86,.5)';ctx.fillRect(tx-11,top-26,3,db-top+70);
-      ctx.fillStyle='rgba(12,8,5,.95)';ctx.fillRect(tx-34,top+34,68,13);
+    if(tx>-110&&tx<AW+110){   // tower: rises from the deck, crossbraced
+      ctx.fillStyle='rgba(11,7,4,.97)';
+      ctx.fillRect(tx-13,top-30,10,DB-top+96);ctx.fillRect(tx+4,top-30,10,DB-top+96);
+      ctx.fillStyle='rgba(228,166,92,.42)';ctx.fillRect(tx-13,top-30,3,DB-top+96);
+      ctx.fillStyle='rgba(11,7,4,.97)';
+      for(let b=0;b<4;b++)ctx.fillRect(tx-13,top+8+b*58,27,9);
       A(.3*en);ctx.globalCompositeOperation='lighter';
-      ctx.drawImage(glowG,tx-70,top-80,140,140);ctx.globalCompositeOperation='source-over';A(1)}
+      ctx.drawImage(glowG,tx-74,top-86,148,148);ctx.globalCompositeOperation='source-over';A(1)}
   }
 
-  // --- the deck: a dark slab in warm light, seen just off level so it has a walkable face ---
-  g=ctx.createLinearGradient(0,dt_,0,db);
-  g.addColorStop(0,'#241710');g.addColorStop(.34,'#120b07');g.addColorStop(1,'#080504');
-  ctx.fillStyle=g;ctx.fillRect(0,dt_,AW,db-dt_);
-  // plating running away down the span
-  ctx.strokeStyle='rgba(224,164,92,.12)';ctx.lineWidth=1.3;ctx.beginPath();
-  for(let x=-((sc*.8)%86);x<AW+86;x+=86){ctx.moveTo(x,dt_);ctx.lineTo(x+22,db)}
+  // --- the deck slab you are standing on ---
+  g=ctx.createLinearGradient(0,DKY,0,DB);
+  g.addColorStop(0,'#38251a');g.addColorStop(.18,'#17100a');g.addColorStop(1,'#070403');
+  ctx.fillStyle=g;ctx.fillRect(0,DKY,AW,DKH);
+  ctx.strokeStyle='rgba(228,170,98,.1)';ctx.lineWidth=1.2;ctx.beginPath();   // plating
+  for(let x=-((sc*.8)%74);x<AW+74;x+=74){ctx.moveTo(x,DKY);ctx.lineTo(x,DB)}
   ctx.stroke();
-  ctx.strokeStyle='rgba(224,164,92,.07)';ctx.lineWidth=1;ctx.beginPath();
-  for(let k=1;k<4;k++){const y=dt_+(db-dt_)*k/4;ctx.moveTo(0,y);ctx.lineTo(AW,y)}
-  ctx.stroke();
-  // the lit far rail and the near edge you can fall from
-  ctx.strokeStyle='rgba(248,196,124,.92)';ctx.lineWidth=2.6;
-  ctx.beginPath();ctx.moveTo(0,dt_);ctx.lineTo(AW,dt_);ctx.stroke();
-  ctx.globalCompositeOperation='lighter';A(.5);ctx.drawImage(glowA,-100,dt_-74,AW+200,148);
+  ctx.strokeStyle='rgba(252,206,140,.95)';ctx.lineWidth=2.6;                 // the lit running surface
+  ctx.beginPath();ctx.moveTo(0,DKY);ctx.lineTo(AW,DKY);ctx.stroke();
+  ctx.globalCompositeOperation='lighter';A(.42);ctx.drawImage(glowA,-100,DKY-82,AW+200,104);
   ctx.globalCompositeOperation='source-over';A(1);
-  ctx.strokeStyle='rgba(255,226,180,.5)';ctx.lineWidth=1.1;
-  ctx.beginPath();ctx.moveTo(0,dt_-4);ctx.lineTo(AW,dt_-4);ctx.stroke();
-  ctx.strokeStyle='rgba(150,255,195,'+(.3+.45*en)+')';ctx.lineWidth=2.4;   // the near edge, lit green: the drop
-  ctx.beginPath();ctx.moveTo(0,db);ctx.lineTo(AW,db);ctx.stroke();
-  ctx.globalCompositeOperation='lighter';A(.22+.3*en);ctx.drawImage(glowG,-100,db-60,AW+200,120);
-  ctx.globalCompositeOperation='source-over';A(1);
-  // under-deck trusses falling into the dark
-  ctx.strokeStyle='rgba(10,7,4,.8)';ctx.lineWidth=2;ctx.beginPath();
-  for(let x=-((sc*.8)%104);x<AW+104;x+=104){ctx.moveTo(x,db);ctx.lineTo(x+30,db+40);ctx.moveTo(x+60,db);ctx.lineTo(x+30,db+40)}
+  ctx.strokeStyle='rgba(150,255,195,'+(.22+.4*en)+')';ctx.lineWidth=1.6;     // energy seam under the surface
+  ctx.beginPath();ctx.moveTo(0,DKY+9);ctx.lineTo(AW,DKY+9);ctx.stroke();
+  ctx.strokeStyle='rgba(9,6,3,.85)';ctx.lineWidth=2.2;ctx.beginPath();       // trusses falling away below
+  for(let x=-((sc*.8)%104);x<AW+104;x+=104){
+    ctx.moveTo(x,DB);ctx.lineTo(x+52,DB+46);ctx.moveTo(x+104,DB);ctx.lineTo(x+52,DB+46);ctx.moveTo(x,DB+2);ctx.lineTo(x+104,DB+2)}
   ctx.stroke();
+  const vd=ctx.createLinearGradient(0,DB,0,AH);                             // the drop below the span
+  vd.addColorStop(0,'rgba(8,5,3,.55)');vd.addColorStop(.45,'rgba(6,4,2,.9)');vd.addColorStop(1,'rgba(4,2,1,.98)');
+  A(1);ctx.fillStyle=vd;ctx.fillRect(0,DB,AW,AH-DB);
   ctx.restore();
 }
-/* --- drawing: wind, debris and the far side, all over the top of the player --- */
+/* --- drawing: wind, debris and the far side, over the top of the player --- */
 function drawBridgeFore(){
-  const dt_=deckTop(),db=deckBot();
+  const DB=DKY+DKH;
   ctx.save();rr(0,0,AW,AH,26);ctx.clip();
   ctx.globalCompositeOperation='lighter';
-  // debris torn loose and carried off down the span
   for(let i=0;i<BR.deb.length;i++){const b=BR.deb[i],s=b.s*b.z;
     A(.14+.3*b.z);ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.r);
-    ctx.fillStyle='rgba(92,58,28,.9)';ctx.fillRect(-s/2,-s/2,s,s);
-    ctx.strokeStyle='rgba(248,196,124,.5)';ctx.lineWidth=1.1;ctx.strokeRect(-s/2,-s/2,s,s);ctx.restore()}
+    ctx.fillStyle='rgba(96,60,28,.9)';ctx.fillRect(-s/2,-s/2,s,s);
+    ctx.strokeStyle='rgba(250,200,132,.5)';ctx.lineWidth=1.1;ctx.strokeRect(-s/2,-s/2,s,s);ctx.restore()}
   // the gale: long amber streaks running right to left across the whole frame
   const n=30+(BR.w*26|0);
   for(let i=0;i<n;i++){
     const sd=i*127.1,q=((clock*(.46+BR.w*.54)+((sd*.0137)%1))%1),
       y=((sd*.0391)%1)*AH,x=AW+180-q*(AW+360),
-      L=90+BR.w*165*(.4+((sd*.0071)%1)),near=y>dt_-30&&y<db+30;
-    A((.07+.26*BR.w)*Math.sin(q*Math.PI)*(.45+.55*((sd*.0213)%1))*(near?.7:1));
-    ctx.strokeStyle=near?'rgba(255,214,160,1)':'rgba(255,176,96,1)';
+      L=90+BR.w*165*(.4+((sd*.0071)%1)),near=Math.abs(y-DKY)<70;
+    A((.07+.26*BR.w)*Math.sin(q*Math.PI)*(.45+.55*((sd*.0213)%1))*(near?.75:1));
+    ctx.strokeStyle=near?'rgba(255,220,170,1)':'rgba(255,176,96,1)';
     ctx.lineWidth=.9+1.6*((sd*.0053)%1);
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+L,y+BR.g*4);ctx.stroke()}
-  // fine motes
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+L,y+BR.g*3);ctx.stroke()}
   for(let i=0;i<BR.dust.length;i++){const d=BR.dust[i];
-    A(.12+.4*d.z);ctx.fillStyle=d.y>dt_&&d.y<db?'rgba(180,255,205,1)':'rgba(255,196,130,1)';
+    A(.12+.4*d.z);ctx.fillStyle=Math.abs(d.y-DKY)<60?'rgba(180,255,205,1)':'rgba(255,196,130,1)';
     ctx.fillRect(d.x,d.y,d.s*d.z*2.4,d.s*d.z)}
   ctx.globalCompositeOperation='source-over';A(1);
   ctx.restore();
@@ -1611,10 +1619,10 @@ function drawBridgeFore(){
   if(BR.prog>.84&&BR.st!=='fail'){
     const u=(BR.prog-.84)/.16,x=AW-20-u*70;
     ctx.save();rr(0,0,AW,AH,26);ctx.clip();ctx.globalCompositeOperation='lighter';
-    A(.14+.3*u);ctx.drawImage(glowA,x-190,AH/2-230,380,460);
-    A(.12+.3*u);ctx.drawImage(glowG,x-120,deckTop()-130,240,360);
+    A(.14+.3*u);ctx.drawImage(glowA,x-190,DKY-300,380,460);
+    A(.12+.3*u);ctx.drawImage(glowG,x-120,DKY-260,240,330);
     ctx.strokeStyle='rgba(255,236,196,'+(.45+.5*u)+')';ctx.lineWidth=4;
-    ctx.beginPath();ctx.moveTo(x,deckTop()-TOWH-20);ctx.lineTo(x,deckBot()+60);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,DKY-TOWH-40);ctx.lineTo(x,DB+50);ctx.stroke();
     ctx.globalCompositeOperation='source-over';A(1);ctx.restore()}
   // quick embrace ring, drawn last so it is never buried
   const q=BR.qe;
@@ -1639,43 +1647,47 @@ function drawBridgeFore(){
       ctx.beginPath();ctx.arc(P.x,P.y,rt+u*110,0,TAU);ctx.stroke();
       ctx.globalCompositeOperation='source-over';A(1)}
     ctx.restore()}
-  // golden blowout on the big beats, the way the reference frames wash out at peak
   if(BR.flash>.004){A(BR.flash*.4);ctx.fillStyle='#ffeec4';ctx.fillRect(0,0,AW,AH);A(1)}
 }
-/* --- the energy wrapped around the player --- */
+/* --- the energy wrapped around the player, pressed down onto the deck by the weight --- */
 function drawPlayerEnergy(){
-  const en=BR.en,wx=-BR.w*.5;                                     // everything leans into the wind
-  ctx.save();ctx.globalCompositeOperation='lighter';
+  const en=BR.en,wx=-BR.w*.5,gz=clamp(BR.bob,0,1.2);
+  ctx.save();
+  // contact shadow where the cube meets the running surface
+  ctx.globalCompositeOperation='source-over';
+  A(.42);ctx.fillStyle='#000';ctx.beginPath();
+  ctx.ellipse(P.x,DKY+3,24+10*gz,5.5,0,0,TAU);ctx.fill();A(1);
+  ctx.globalCompositeOperation='lighter';
   for(let i=0;i<BR.trail.length;i++){const t=BR.trail[i];if(t.l<=0)continue;
     A(.3*(t.l/.42)*en);ctx.drawImage(glowG,t.x-44,t.y-44,88,88)}
   A((.5+.45*en)*(1+BR.flash));ctx.drawImage(glowG,P.x-130,P.y-130,260,260);   // core bloom
-  // ribbons: arcs orbiting the cube, stretched downwind and flattened by the downforce
+  // ribbons orbiting the cube, stretched downwind and flattened by the downforce
   for(let i=0;i<4;i++){
-    const ph=clock*(1.1+i*.37)+i*1.9,rr0=30+i*9+Math.sin(clock*2+i)*4,
-      sx=1+.5*BR.w,sy=1-.22*Math.min(1,BR.g*.5);
-    ctx.save();ctx.translate(P.x+wx*9,P.y+BR.g*5);ctx.scale(sx,sy);ctx.rotate(ph*.5);
+    const ph=clock*(1.1+i*.37)+i*1.9,rr0=28+i*9+Math.sin(clock*2+i)*4,
+      sx=1+.5*BR.w,sy=1-.2*gz;
+    ctx.save();ctx.translate(P.x+wx*9,P.y+gz*4);ctx.scale(sx,sy);ctx.rotate(ph*.5);
     ctx.strokeStyle='rgba(140,255,180,'+(.32+.4*en)+')';ctx.lineWidth=2.1+1.6*en;
     ctx.beginPath();ctx.arc(0,0,rr0,ph,ph+2.1+.5*Math.sin(clock*1.7+i));ctx.stroke();
     ctx.strokeStyle='rgba(240,255,245,'+(.2+.3*en)+')';ctx.lineWidth=.9;
     ctx.beginPath();ctx.arc(0,0,rr0,ph,ph+2.1+.5*Math.sin(clock*1.7+i));ctx.stroke();
     ctx.restore()}
-  // motes caught in the field, blown left and pressed down
+  // motes caught in the field, blown left and pressed down onto the deck
   for(let i=0;i<BR.aura.length;i++){const a=BR.aura[i],
     an=a.a+clock*a.sp,r=a.r*(1+.22*Math.sin(clock*2.1+a.ph)),
     x=P.x+Math.cos(an)*r*(1+BR.w*.45)+wx*16,
-    y=P.y+Math.sin(an)*r*(1-.2*Math.min(1,BR.g*.5))+BR.g*11+Math.sin(clock*3+a.ph)*3;
+    y=Math.min(DKY-1,P.y+Math.sin(an)*r*(1-.2*gz)+gz*8+Math.sin(clock*3+a.ph)*3);
     A((.3+.5*en)*(.45+.55*Math.sin(clock*2.6+a.ph)));
     ctx.fillStyle='rgba(185,255,210,1)';ctx.fillRect(x,y,a.s*(1+BR.w*.3),a.s*.8)}
-  // the ground is being crushed under them
-  const cr=1+BR.g*.5;
+  // the surface buckling under the weight
+  const cr=1+gz*.5;
   A(.24+.4*en);ctx.strokeStyle='rgba(150,255,190,.95)';ctx.lineWidth=1.8;
-  ctx.beginPath();ctx.ellipse(P.x,P.y+24,38*cr,9/cr,0,0,TAU);ctx.stroke();
-  A(.14+.22*en);ctx.beginPath();ctx.ellipse(P.x,P.y+24,58*cr,14/cr,0,0,TAU);ctx.stroke();
-  // pressure streaks pushing down into the deck
-  for(let i=0;i<5;i++){const q=((clock*1.6+i/5)%1),x=P.x-26+i*13;
+  ctx.beginPath();ctx.ellipse(P.x,DKY+2,40*cr,7/cr,0,0,TAU);ctx.stroke();
+  A(.14+.22*en);ctx.beginPath();ctx.ellipse(P.x,DKY+2,62*cr,11/cr,0,0,TAU);ctx.stroke();
+  // pressure streaks driving down into the deck
+  for(let i=0;i<5;i++){const q=((clock*1.6+i/5)%1),x=P.x-24+i*12;
     A((.1+.3*en)*Math.sin(q*Math.PI));
     ctx.strokeStyle='rgba(190,255,215,1)';ctx.lineWidth=1.3;
-    ctx.beginPath();ctx.moveTo(x,P.y-20+q*44);ctx.lineTo(x+wx*4,P.y-8+q*44);ctx.stroke()}
+    ctx.beginPath();ctx.moveTo(x,P.y-16+q*30);ctx.lineTo(x+wx*4,P.y-6+q*30);ctx.stroke()}
   ctx.globalCompositeOperation='source-over';A(1);ctx.restore();
 }
 Object.assign(sfx,{
@@ -1705,14 +1717,37 @@ function stamHud(show){
    which is how this ships — it falls back to an energy field drawn here, so the panel is never
    a dead black box. Either way it starts with the encounter, loops, and stops when it ends. */
 const feedEl=$('vfeed'),feedV=$('vfv'),feedC=$('vfc'),fx=feedC.getContext('2d');
-let feedRAF=0,feedTried=false,feedT=0,feedLast=0,feedIdx=0;
-const FEEDSRC=['bridge-feed.mp4','bridge-feed.webm'];   // drop either one in beside index.html
-function feedTry(){
-  if(feedIdx>=FEEDSRC.length)return;
-  feedV.src=FEEDSRC[feedIdx++];try{feedV.load()}catch(e){}
-  const pr=feedV.play();if(pr&&pr.catch)pr.catch(()=>{});
+let feedRAF=0,feedTried=false,feedT=0,feedLast=0,feedIdx=0,feedObj=null;
+// a github.com page link points at HTML, so rewrite it to the raw file
+function feedRaw(u){
+  u=(u||'').trim();if(!u)return '';
+  let m=u.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:blob|raw)\/(.+)$/i);
+  if(m)return 'https://raw.githubusercontent.com/'+m[1]+'/'+m[2]+'/'+m[3].split('?')[0];
+  return u;
 }
-feedV.addEventListener('error',()=>{if(feedEl.classList.contains('on'))feedTry()});   // unplayable codec: fall through
+const FEEDSRC=[feedRaw(FEED_URL),'bridge-feed.mp4','bridge-feed.webm'].filter(Boolean);
+function feedSet(u){feedV.src=u;try{feedV.load()}catch(e){}const pr=feedV.play();if(pr&&pr.catch)pr.catch(()=>{})}
+// GitHub hands raw files back as application/octet-stream, which some browsers refuse to play.
+// If the plain src is rejected, pull the bytes down and re-label them before handing them over.
+function feedRetype(u){
+  fetch(u,{mode:'cors'}).then(r=>r.ok?r.blob():Promise.reject(0)).then(b=>{
+    if(feedObj)URL.revokeObjectURL(feedObj);
+    feedObj=URL.createObjectURL(b.slice(0,b.size,/\.webm(\?|$)/i.test(u)?'video/webm':'video/mp4'));
+    feedSet(feedObj);
+  }).catch(()=>feedTry());
+}
+function feedTry(){
+  if(feedIdx>=FEEDSRC.length)return;                 // nothing left: the drawn animation stands in
+  const u=FEEDSRC[feedIdx++];
+  if(/^https?:/i.test(u)&&!feedV.dataset.retried){feedV.dataset.retried='1';feedSet(u);feedV.dataset.pending=u}
+  else feedSet(u);
+}
+feedV.addEventListener('error',()=>{
+  if(!feedEl.classList.contains('on'))return;
+  const p=feedV.dataset.pending;
+  if(p){feedV.dataset.pending='';feedRetype(p);return}   // one re-label attempt before moving on
+  feedTry();
+});
 function feedPaint(now){
   if(!feedEl.classList.contains('on')){feedRAF=0;return}
   feedRAF=requestAnimationFrame(feedPaint);
