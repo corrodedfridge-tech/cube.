@@ -53,6 +53,7 @@ canvas.dim{filter:blur(4px) brightness(.5)}
 #bb{display:block;height:7px;margin-top:7px;background:rgba(255,255,255,.1);transform:skewX(-20deg);overflow:hidden}
 #bf{background:var(--red);box-shadow:0 0 12px rgba(255,42,42,.6);transform:scaleX(0);transition:transform 1.4s var(--ease)}
 #boss.on #bf{transform:scaleX(1)}
+#boss.nobar #bb,#boss.nobar #bn i{display:none}   /* set-pieces with nothing to damage */
 
 /* announcement banner */
 #banner{position:absolute;left:0;right:0;top:21vh;text-align:center;opacity:0}
@@ -361,7 +362,8 @@ const fmtT=s=>((s/60)|0)+':'+('0'+((s|0)%60)).slice(-2);
 const btns=()=>scr?[...SC[scr].querySelectorAll('.btn')].filter(b=>b.offsetParent!==null):[];   // hidden entries are not focusable
 function focusBtn(d){const b=btns();if(!b.length)return;if(d)focusI=(focusI+d+b.length)%b.length;b.forEach((x,i)=>x.classList.toggle('on',i===focusI))}
 function show(n){scr=n;for(const k in SC)SC[k].classList.toggle('on',k===n);cv.className=n==='menu'?'bl':n?'dim':'';focusI=0;focusBtn()}
-const nameplate=(on,nm)=>{if(nm)$('bnm').textContent=nm;$('boss').classList.toggle('on',!!on)};
+const nameplate=(on,nm,bar)=>{if(nm)$('bnm').textContent=nm;
+  $('boss').classList.toggle('nobar',on&&bar===false);$('boss').classList.toggle('on',!!on)};
 function hudUpdate(){scoreEl.textContent=fmt(G.score);bestEl.textContent='Best '+fmt(Math.max(best,G.score))}
 function hsUpdate(){$('hs').textContent=best?'Best '+fmt(best):''}
 function countUp(el,to,ms){const t0=performance.now();(function f(){const u=Math.min(1,(performance.now()-t0)/ms);el.textContent=fmt(to*(1-Math.pow(1-u,3)));if(u<1)requestAnimationFrame(f)})()}
@@ -407,9 +409,13 @@ function stepPlayer(dt){
   const k=l>0?11:7;const mv=MAXV*(1+.3*(P.z>0));P.vx=damp(P.vx,ax*mv,k,dt);P.vy=damp(P.vy,ay*mv,k,dt);
   P.x+=P.vx*dt;P.y+=P.vy*dt;
   // arena bounds + wall impact squash
-  const m=P.s/2+4;
-  if(P.x<m||P.x>AW-m){const v=Math.abs(P.vx),sg=P.x<m?-1:1;P.x=clamp(P.x,m,AW-m);if(v>140){P.qx=-.26;P.qy=.16;P.qxv=P.qyv=0;burst(P.x+sg*P.s/2,P.y,6,150,.35,2.6,0,4);sfx.move();shake(.05)}P.vx=0}
-  if(P.y<m||P.y>AH-m){const v=Math.abs(P.vy),sg=P.y<m?-1:1;P.y=clamp(P.y,m,AH-m);if(v>140){P.qy=-.26;P.qx=.16;P.qxv=P.qyv=0;burst(P.x,P.y+sg*P.s/2,6,150,.35,2.6,0,4);sfx.move();shake(.05)}P.vy=0}
+  const m=P.s/2+4,lo=m+SH.l,hi=AW-m-SH.r,to=m+SH.u,bo=AH-m-SH.d;        // the shrink walls are solid
+  if(P.x<lo||P.x>hi){const v=Math.abs(P.vx),sg=P.x<lo?-1:1;P.x=clamp(P.x,Math.min(lo,hi),Math.max(lo,hi));
+    if(SH.on&&SH.ph===1){SH.shove=1;P.qx=-.3;P.qy=.2;P.qxv=P.qyv=0}
+    if(v>140){P.qx=-.26;P.qy=.16;P.qxv=P.qyv=0;burst(P.x+sg*P.s/2,P.y,6,150,.35,2.6,0,4);sfx.move();shake(.05)}P.vx=0}
+  if(P.y<to||P.y>bo){const v=Math.abs(P.vy),sg=P.y<to?-1:1;P.y=clamp(P.y,Math.min(to,bo),Math.max(to,bo));
+    if(SH.on&&SH.ph===1){SH.shove=1;P.qy=-.3;P.qx=.2;P.qxv=P.qyv=0}
+    if(v>140){P.qy=-.26;P.qx=.16;P.qxv=P.qyv=0;burst(P.x,P.y+sg*P.s/2,6,150,.35,2.6,0,4);sfx.move();shake(.05)}P.vy=0}
   // springs return the cube to its rest shape (with wobble)
   P.qxv+=(-P.qx*300-P.qxv*17)*dt;P.qx+=P.qxv*dt;P.qyv+=(-P.qy*300-P.qyv*17)*dt;P.qy+=P.qyv*dt;
   P.rot=damp(P.rot,clamp(P.vx/MAXV,-1,1)*.34,12,dt);
@@ -418,9 +424,10 @@ function stepPlayer(dt){
 }
 
 /* ================= OBSTACLES + PATTERNS ================= */
-const ON=220,obs=Array.from({length:ON},()=>({on:0,x:0,y:0,vx:0,vy:0,s:30,r:0,vr:0,a:0,near:0,h:0,hp:1,f:0,hb:-1,ht:-9,k:0,tm:0,sp:0,life:0}));
+const ON=220,obs=Array.from({length:ON},()=>({on:0,x:0,y:0,vx:0,vy:0,s:30,r:0,vr:0,a:0,near:0,h:0,hp:1,f:0,hb:-1,ht:-9,k:0,tm:0,sp:0,life:0,
+  b:0,bt:0,bp:0,bf:0,bg:0,cx:0,cy:0,ca:0,cr:0,cw:0,cv:0}));   // b = attack behaviour (see stepBehave)
 // dl = spawn delay in seconds (staggers sequences), h = homing time in seconds
-function spawnObs(x,y,vx,vy,s,dl,h){for(let i=0;i<ON;i++){const o=obs[i];if(o.on)continue;o.on=1;o.x=x;o.y=y;o.vx=vx;o.vy=vy;o.s=s;o.r=rnd(0,TAU);o.vr=rnd(-1.8,1.8)*(1+Math.hypot(vx,vy)/600);o.a=-(dl||0);o.near=0;o.h=h||0;o.hp=Math.ceil(s/22);o.f=0;o.hb=-1;o.ht=-9;o.k=0;o.tm=0;return o}}
+function spawnObs(x,y,vx,vy,s,dl,h){for(let i=0;i<ON;i++){const o=obs[i];if(o.on)continue;o.on=1;o.x=x;o.y=y;o.vx=vx;o.vy=vy;o.s=s;o.r=rnd(0,TAU);o.vr=rnd(-1.8,1.8)*(1+Math.hypot(vx,vy)/600);o.a=-(dl||0);o.near=0;o.h=h||0;o.hp=Math.ceil(s/22);o.f=0;o.hb=-1;o.ht=-9;o.k=0;o.tm=0;o.b=0;o.bt=0;o.bf=0;o.bg=0;return o}}
 const DIR=[[1,0],[-1,0],[0,1],[0,-1]];
 const edge=(s,t)=>s<2?[s?AW:0,t*AH]:[t*AW,s===2?0:AH];
 const pat={
@@ -446,16 +453,117 @@ Object.assign(pat,{
   // lanes: crossing rows and columns of slow cubes; weave through
   lanes(){const v=G.speed*.6,a=Math.random()<.5,b=Math.random()<.5,o1=rnd(0,90),o2=rnd(0,100);for(let i=0;i<4;i++)spawnObs(a?0:AW,o1+80+i*150,a?v:-v,0,40,i*.15);for(let i=0;i<6;i++)spawnObs(o2+90+i*150,b?0:AH,0,b?v:-v,40,.3+i*.12);G.next+=1.2}
 });
-const PAT=[['single',0,3],['diag',.05,2],['aimed',.12,3],['fan',.18,2],['seeker',.22,2],['darts',.26,2],['pincer',.3,2],['ring',.34,2],['curtain',.4,2],['wall',.45,2],['nova',.5,2],['lanes',.58,2]]; // [name, unlock difficulty, weight]
-function spawnPattern(){let tot=0;for(let i=0;i<PAT.length;i++)if(G.diff>=PAT[i][1])tot+=PAT[i][2];let r=Math.random()*tot;for(let i=0;i<PAT.length;i++){if(G.diff<PAT[i][1])continue;r-=PAT[i][2];if(r<=0){pat[PAT[i][0]]();break}}if(G.diff>.6&&Math.random()<.3)pat.aimed();sfx.spawn()}
+
+Object.assign(pat,{
+  // chargers: cubes drift in, hang there winding up, then lunge at where you stand
+  chargers(){const k=G.diff>.55?3:2,v=G.speed*.5;
+    for(let i=0;i<k;i++){const s=rnd(0,4)|0,e=edge(s,rnd(.2,.8)),
+      o=spawnObs(e[0],e[1],DIR[s][0]*v,DIR[s][1]*v,34,i*.45);
+      if(o){o.b=1;o.bp=lerp(1.5,1.0,G.diff)+i*.22}}},
+  // vortex: a ring that spins around the middle of the arena and tightens as it goes
+  vortex(){const cx=AW/2,cy=AH/2,n=G.diff>.6?8:6,r0=rnd(0,TAU),
+    dir=Math.random()<.5?1:-1,R=rnd(250,310);
+    for(let i=0;i<n;i++){const a=r0+i*TAU/n,o=spawnObs(cx+Math.cos(a)*R,cy+Math.sin(a)*R,0,0,26,i*.07);
+      if(o){o.b=2;o.cx=cx;o.cy=cy;o.ca=a;o.cr=R;o.cw=dir*lerp(.75,1.15,G.diff);o.cv=lerp(26,40,G.diff);o.bp=7.5}}
+    G.next+=.7},
+  // weave: cubes cross the arena sliding side to side, so the gaps keep moving
+  weave(){const h=Math.random()<.5,f=Math.random()<.5,n=5,v=G.speed*.78,len=h?AH:AW;
+    for(let i=0;i<n;i++){const c=(i+.5)/n*len,
+      o=h?spawnObs(f?0:AW,c,f?v:-v,0,28,i*.1):spawnObs(c,f?0:AH,0,f?v:-v,28,i*.1);
+      if(o){o.b=3;o.cw=rnd(2.2,3.1);o.ca=i*1.3;o.cv=lerp(130,205,G.diff)}}},
+  // splitters: big cubes that burst into a pair partway across
+  splitters(){const k=G.diff>.5?3:2,v=G.speed*.72;
+    for(let i=0;i<k;i++){const s=rnd(0,4)|0,e=edge(s,rnd(.2,.8)),
+      a=Math.atan2(P.y-e[1],P.x-e[0])+rnd(-.22,.22),
+      o=spawnObs(e[0],e[1],Math.cos(a)*v,Math.sin(a)*v,44,i*.3);
+      if(o){o.b=4;o.bp=rnd(.8,1.2)}}},
+  // crossfire: two fans from opposite sides, timed to meet in the middle
+  crossfire(){const h=Math.random()<.5,v=G.speed*.95,t=rnd(.25,.75);
+    for(let sd=0;sd<2;sd++){const e=h?[sd?AW:0,t*AH]:[t*AW,sd?AH:0],
+      b=Math.atan2(P.y-e[1],P.x-e[0]);
+      for(let i=-1;i<=1;i++)spawnObs(e[0],e[1],Math.cos(b+i*.3)*v,Math.sin(b+i*.3)*v,24,sd*.18)}},
+  // comb: short teeth from both sides, interlocking, with a lane running through the middle
+  comb(){const h=Math.random()<.5,n=7,len=h?AH:AW,v=G.speed*.68,sz=len/n*.62;
+    for(let i=0;i<n;i++){const c=(i+.5)/n*len,top=i%2===0;
+      if(h)spawnObs(top?0:AW,c,top?v:-v,0,sz,i*.08);
+      else spawnObs(c,top?0:AH,0,top?v:-v,sz,i*.08)}
+    G.next+=.8},
+  // spiral: a turret in the middle sweeping round, laying down an unwinding arm of cubes
+  spiral(){const cx=rnd(AW*.35,AW*.65),cy=rnd(AH*.35,AH*.65),r0=rnd(0,TAU),
+    dir=Math.random()<.5?1:-1,n=14,v=G.speed*.82;
+    for(let i=0;i<n;i++){const a=r0+dir*i*.46;
+      spawnObs(cx,cy,Math.cos(a)*v,Math.sin(a)*v,21,i*.1)}
+    burst(cx,cy,12,150,.5,3,1,3);G.next+=.8}
+});
+
+Object.assign(pat,{
+  // vice: left and right close in, then cubes run the shortened corridor
+  vice(){shrinkStart(1);const v=G.speed*.8;
+    for(let i=0;i<5;i++){const y=rnd(.1,.9)*AH,f=Math.random()<.5;
+      spawnObs(f?0:AW,y,(f?1:-1)*v,rnd(-40,40),26,1.3+i*.34)}},
+  // press: ceiling and floor come down, with cubes crossing the gap that is left
+  press(){shrinkStart(2);const v=G.speed*.85;
+    for(let i=0;i<5;i++){const x=rnd(.1,.9)*AW,f=Math.random()<.5;
+      spawnObs(x,f?0:AH,rnd(-40,40),(f?1:-1)*v,26,1.3+i*.34)}},
+  // collapse: all four walls shut to a box and a nova goes off inside it
+  collapse(){shrinkStart(3)},
+  // iris: the walls leave one off-centre pocket -- get to it before they finish
+  iris(){shrinkStart(4);const v=G.speed*.7;
+    for(let i=0;i<4;i++){const s=rnd(0,4)|0,e=edge(s,rnd(.2,.8));
+      spawnObs(e[0],e[1],DIR[s][0]*v,DIR[s][1]*v,28,1.5+i*.4)}}
+});
+const PAT=[['single',0,3],['diag',.05,2],['aimed',.12,3],['weave',.15,2],['fan',.18,2],['chargers',.2,2],
+  ['seeker',.22,2],['darts',.26,2],['pincer',.3,2],['splitters',.32,2],['ring',.34,2],['curtain',.4,2],
+  ['wall',.45,2],['crossfire',.47,2],['nova',.5,2],['comb',.52,2],['spiral',.56,2],['lanes',.58,2],['vortex',.62,2],
+  ['vice',.36,2],['press',.42,2],['iris',.5,2],['collapse',.6,2]]; // [name, unlock difficulty, weight]
+function spawnPattern(){let tot=0;
+  const sk=SH.on?{vice:1,press:1,iris:1,collapse:1}:null;                  // one squeeze at a time
+  for(let i=0;i<PAT.length;i++)if(G.diff>=PAT[i][1]&&!(sk&&sk[PAT[i][0]]))tot+=PAT[i][2];let r=Math.random()*tot;for(let i=0;i<PAT.length;i++){if(G.diff<PAT[i][1]||(sk&&sk[PAT[i][0]]))continue;r-=PAT[i][2];if(r<=0){pat[PAT[i][0]]();break}}if(G.diff>.6&&Math.random()<.3)pat.aimed();sfx.spawn()}
+
+/* --- attack behaviours: what a cube does once it is in play ---------------------------------
+   b=1 charger  drifts in, hangs in the air winding up, then lunges straight at where you are
+   b=2 orbiter  swings around a pivot on a shrinking radius, so the ring closes as it spins
+   b=3 weaver   holds a heading but slides side to side, so the gap keeps moving
+   b=4 splitter travels, then bursts into two smaller cubes on diverging paths
+   Each returns true if it has already placed the cube itself. -------------------------------- */
+function stepBehave(o,dt){
+  o.bt+=dt;
+  if(o.b===1){                                   // charger
+    if(!o.bf){
+      if(o.bt<o.bp){const f=Math.exp(-3.4*dt);o.vx*=f;o.vy*=f;        // hangs, winding up
+        if(Math.random()<.5)emit(o.x+rnd(-14,14),o.y+rnd(-14,14),rnd(-40,40),rnd(-40,40),.3,2,1,4)}
+      else{o.bf=1;const a=Math.atan2(P.y-o.y,P.x-o.x),v=G.speed*2.15;
+        o.vx=Math.cos(a)*v;o.vy=Math.sin(a)*v;o.vr=rnd(-11,11);
+        burst(o.x,o.y,10,220,.4,2.6,1,3);sfx.dash()}}
+    return false}
+  if(o.b===2){                                   // orbiter
+    if(o.a<1)return false;
+    o.ca+=o.cw*dt;o.cr=Math.max(34,o.cr-o.cv*dt);
+    o.x=o.cx+Math.cos(o.ca)*o.cr;o.y=o.cy+Math.sin(o.ca)*o.cr;
+    o.vx=-Math.sin(o.ca)*o.cw*o.cr;o.vy=Math.cos(o.ca)*o.cw*o.cr;    // only for the ghost trail
+    o.r+=o.vr*dt;o.f-=dt;o.bg+=dt;
+    if(o.bg>o.bp){o.on=0;burst(o.x,o.y,6,160,.4,2.4,1,3)}            // lets go once its turn is done
+    return true}
+  if(o.b===3){                                   // weaver
+    const a=Math.atan2(o.vy,o.vx),sp=Math.hypot(o.vx,o.vy),w=Math.cos(o.bt*o.cw+o.ca)*o.cv;
+    o.x+=-Math.sin(a)*w*dt;o.y+=Math.cos(a)*w*dt;
+    return false}
+  if(o.b===4&&o.bt>=o.bp&&!o.bf){                // splitter
+    o.bf=1;const a=Math.atan2(o.vy,o.vx),sp=Math.hypot(o.vx,o.vy);
+    for(let j=-1;j<=1;j+=2){const na=a+j*.5,c=spawnObs(o.x,o.y,Math.cos(na)*sp*1.15,Math.sin(na)*sp*1.15,o.s*.62);
+      if(c)c.a=.85}
+    burst(o.x,o.y,12,260,.45,3,1,3);sfx.split();o.on=0;return true}
+  return false
+}
 /* collision: forgiving circle hitboxes; near-miss = a thin ring outside the hitbox */
 function stepObs(dt){const gr=48+8*U.graze;
   for(let i=0;i<ON;i++){const o=obs[i];if(!o.on)continue;
     o.a=Math.min(1,o.a+dt/.42);const e=o.a>0?o.a*o.a:0;
     if(o.h>0&&o.a>=1&&P.alive){o.h-=dt;const sp=Math.hypot(o.vx,o.vy),c=Math.atan2(o.vy,o.vx),t=Math.atan2(P.y-o.y,P.x-o.x),w=Math.atan2(Math.sin(t-c),Math.cos(t-c)),n=c+clamp(w,-1.5*dt,1.5*dt);o.vx=Math.cos(n)*sp;o.vy=Math.sin(n)*sp}          // eased spawn: grows & creeps before committing
     if(o.k&&knightBlock(o,dt))continue;   // roaring-knight cubes have their own motion
-    o.x+=o.vx*e*dt;o.y+=o.vy*e*dt;o.r+=o.vr*dt;o.f-=dt;
-    if(!o.k&&o.a>=1&&(o.x<-100||o.x>AW+100||o.y<-100||o.y>AH+100)){o.on=0;continue}   // (knight cubes manage their own life)
+    if(o.b&&stepBehave(o,dt)){if(!o.on)continue}else
+    {o.x+=o.vx*e*dt;o.y+=o.vy*e*dt;o.r+=o.vr*dt;o.f-=dt;}
+    if(!o.k&&o.b!==2&&o.a>=1&&(o.x<-100||o.x>AW+100||o.y<-100||o.y>AH+100)){o.on=0;continue}   // (knight cubes manage their own life)
     if((G.state!=='play'&&G.state!=='menu')||P.drop>0||o.a<.8)continue;
     const d=Math.hypot(P.x-o.x,P.y-o.y),hr=9+o.s*.44;
     if(P.inv>0)continue;
@@ -475,13 +583,105 @@ function nearMiss(o){
   if(G.chain>1)cnEl.animate([{transform:'scale(1.6)'},{transform:'scale(1)'}],{duration:280,easing:'cubic-bezier(.2,.8,.2,1)'});
 }
 
+
+/* ================= ARENA SHRINK =================
+   Some attacks take the room away instead of filling it. Slabs slide in from the edges,
+   the walls are solid so they shove the cube rather than killing it outright, and the
+   cubes keep coming through them -- the squeeze is that you have less room to dodge in.
+   SH.l/r/u/d are the live insets; stepPlayer clamps to them and drawShrink draws them. */
+const SH={on:0,ph:0,t:0,mode:0,l:0,r:0,u:0,d:0,tl:0,tr:0,tu:0,td:0,hold:3.4,shove:0};
+const SHN=['','Vice','Press','Collapse','Iris'];
+function shrinkClear(){SH.on=0;SH.ph=0;SH.l=SH.r=SH.u=SH.d=0;SH.tl=SH.tr=SH.tu=SH.td=0;SH.shove=0}
+function shrinkStart(mode){
+  if(SH.on)return;
+  SH.on=1;SH.ph=0;SH.t=0;SH.mode=mode;SH.shove=0;
+  SH.l=SH.r=SH.u=SH.d=0;
+  const deep=lerp(.30,.40,G.diff);                       // how far in the walls come
+  if(mode===1){SH.tl=AW*deep;SH.tr=AW*deep;SH.tu=0;SH.td=0}
+  else if(mode===2){SH.tl=0;SH.tr=0;SH.tu=AH*deep;SH.td=AH*deep}
+  else if(mode===3){const k=deep*.78;SH.tl=AW*k;SH.tr=AW*k;SH.tu=AH*k;SH.td=AH*k}
+  else{                                                   // iris: the pocket sits off to one side
+    const bx=rnd(.1,.6),by=rnd(.1,.6),w=deep*1.5,h=deep*1.5;
+    SH.tl=AW*bx*w;SH.tr=AW*(1-bx)*w;SH.tu=AH*by*h;SH.td=AH*(1-by)*h}
+  SH.hold=lerp(3.6,4.8,G.diff);
+  toast(SHN[mode],'The arena is closing');shake(.3);G.fl=Math.max(G.fl,.1);G.fc=0;sfx.shwarn();
+}
+function stepShrink(dt){
+  if(!SH.on)return;
+  SH.t+=dt;SH.shove=Math.max(0,SH.shove-dt*3);
+  if(SH.ph===0){                                          // warning: edges pulse, nothing moves yet
+    if(SH.t>=.95){SH.ph=1;SH.t=0;shake(.35);sfx.shmove()}}
+  else if(SH.ph===1){                                     // closing
+    const u=clamp(SH.t/1.25,0,1),e=u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+    SH.l=SH.tl*e;SH.r=SH.tr*e;SH.u=SH.tu*e;SH.d=SH.td*e;
+    if(u>=1){SH.ph=2;SH.t=0;shake(.45);G.fl=Math.max(G.fl,.14);G.fc=0;sfx.shlock();
+      if(SH.mode===3){const cx=(SH.l+AW-SH.r)/2,cy=(SH.u+AH-SH.d)/2;   // the box fills with a burst
+        const r0=rnd(0,TAU),v=G.speed*.55;
+        for(let i=0;i<8;i++){const a=r0+i*TAU/8;spawnObs(cx,cy,Math.cos(a)*v,Math.sin(a)*v,20,i*.05)}
+        burst(cx,cy,14,180,.5,3,1,3)}}}
+  else if(SH.ph===2){                                     // held shut
+    if(SH.t>=SH.hold){SH.ph=3;SH.t=0;sfx.shopen()}}
+  else{                                                   // opening back up
+    const u=clamp(SH.t/.9,0,1),e=1-Math.pow(1-u,3);
+    SH.l=SH.tl*(1-e);SH.r=SH.tr*(1-e);SH.u=SH.tu*(1-e);SH.d=SH.td*(1-e);
+    if(u>=1)shrinkClear()}
+  // dust dragged along the moving faces
+  if(SH.ph===1&&Math.random()<.7){
+    const pick=Math.random();
+    if(SH.tl&&pick<.25)emit(SH.l,rnd(0,AH),rnd(60,260),rnd(-60,60),.4,2.4,1,3);
+    else if(SH.tr&&pick<.5)emit(AW-SH.r,rnd(0,AH),-rnd(60,260),rnd(-60,60),.4,2.4,1,3);
+    else if(SH.tu&&pick<.75)emit(rnd(0,AW),SH.u,rnd(-60,60),rnd(60,260),.4,2.4,1,3);
+    else if(SH.td)emit(rnd(0,AW),AH-SH.d,rnd(-60,60),-rnd(60,260),.4,2.4,1,3)}
+}
+function drawShrink(){
+  if(!SH.on)return;
+  const warn=SH.ph===0,pulse=.5+.5*Math.sin(clock*(warn?18:7)),
+    moving=SH.ph===1||SH.ph===3;
+  ctx.save();rr(0,0,AW,AH,26);ctx.clip();
+  const faces=[];
+  if(SH.tl)faces.push([0,0,SH.l,AH,1,0]);
+  if(SH.tr)faces.push([AW-SH.r,0,SH.r,AH,-1,0]);
+  if(SH.tu)faces.push([0,0,AW,SH.u,0,1]);
+  if(SH.td)faces.push([0,AH-SH.d,AW,SH.d,0,-1]);
+  for(let i=0;i<faces.length;i++){
+    const [x,y,w,h,nx,ny]=faces[i];
+    if(w<=0||h<=0)continue;
+    // body: dark slab with a hazard sheen running along it
+    A(.92);ctx.fillStyle='#120406';ctx.fillRect(x,y,w,h);
+    A(.16);ctx.fillStyle='#ff2a2a';ctx.fillRect(x,y,w,h);
+    A(.2);ctx.strokeStyle='rgba(255,90,80,1)';ctx.lineWidth=1;
+    ctx.beginPath();
+    if(nx){for(let k=-h;k<h*2;k+=26){ctx.moveTo(x,y+k);ctx.lineTo(x+w,y+k+w)}}
+    else{for(let k=-w;k<w*2;k+=26){ctx.moveTo(x+k,y);ctx.lineTo(x+k+h,y+h)}}
+    ctx.stroke();
+    // the live edge
+    const ex=nx>0?x+w:nx<0?x:0,ey=ny>0?y+h:ny<0?y:0;
+    A(1);ctx.strokeStyle=warn?'rgba(255,'+(90+120*pulse|0)+',80,1)':'rgba(255,230,200,.95)';
+    ctx.lineWidth=warn?2+2*pulse:3;
+    ctx.beginPath();
+    if(nx){ctx.moveTo(ex,y);ctx.lineTo(ex,y+h)}else{ctx.moveTo(x,ey);ctx.lineTo(x+w,ey)}
+    ctx.stroke();
+    ctx.globalCompositeOperation='lighter';
+    A(moving?.6:.34+.3*pulse);
+    if(nx)ctx.drawImage(glowR,ex-90,-40,180,AH+80);else ctx.drawImage(glowR,-40,ey-90,AW+80,180);
+    ctx.globalCompositeOperation='source-over';
+  }
+  // the warning outline of where the walls are about to stop
+  if(warn){A(.25+.4*pulse);ctx.strokeStyle='rgba(255,70,60,1)';ctx.lineWidth=2;
+    ctx.setLineDash([14,12]);ctx.strokeRect(SH.tl,SH.tu,AW-SH.tl-SH.tr,AH-SH.tu-SH.td);ctx.setLineDash([])}
+  // the surviving pocket gets a faint rim so its shape is readable
+  if(!warn){A(.3);ctx.strokeStyle='rgba(255,180,150,.8)';ctx.lineWidth=1.4;
+    ctx.strokeRect(SH.l,SH.u,AW-SH.l-SH.r,AH-SH.u-SH.d)}
+  A(1);ctx.restore();
+}
+
 /* ================= TP, SHOOTING, UPGRADES ================= */
 // Standing near red cubes (graze) fills TP; holding fire spends it on auto-aimed shots. Pickups upgrade the cube.
 const COST=4,BN=80,PKN=4,FF='Rajdhani,"Arial Narrow",sans-serif',FONT='700 13px '+FF;
 const tpEl=$('tp'),tpv=$('tpv'),upsEl=$('ups'),cellsEl=$('cells');
 let gz=0,gt=0,tpi=-1,fireCd=0,tipDone=false;P.inv=0;P.gl=0;P.tk=0;
 const U={rate:0,power:0,multi:0,pierce:0,graze:0,shield:0};
-const UP=[['rate','RATE',5,3],['power','POWER',3,3],['multi','MULTI',4,2],['pierce','PIERCE',3,2],['graze','GRAZE',3,2],['shield','SHIELD',3,1]]; // key, label, max level, spawn weight
+const UP=[['rate','RATE',5,3],['power','POWER',3,3],['multi','MULTI',4,2],['pierce','PIERCE',3,2],['graze','GRAZE',3,2],['shield','SHIELD',5,3]]; // key, label, max level, spawn weight
 const bul=Array.from({length:BN},()=>({on:0,x:0,y:0,vx:0,vy:0,l:0,d:1,p:0}));
 const pks=Array.from({length:PKN},()=>({on:0,x:0,y:0,k:0,l:0,t:0}));
 const bnEl=$('banner'),bnT=$('bt'),bnS=$('bs');
@@ -513,8 +713,8 @@ function drawText(){
     ctx.font='700 '+f.s+'px '+FF;A(a);ctx.fillStyle=f.c;ctx.save();ctx.translate(f.x,f.y);ctx.scale(k,k);ctx.fillText(f.t,0,0);ctx.restore()}
   ctx.restore();A(1);
 }
-function resetArm(){for(const k in U)U[k]=0;U.shield=3;        // start every run with a full set of shields
-  for(let i=0;i<BN;i++)bul[i].on=0;for(let i=0;i<PKN;i++)pks[i].on=0;knightReset();aquaReset();bridgeReset();lavaPreload();lavaSound(false);clearHaz();F.on=false;F.la=0;setKeyLabel(0);P.z=P.jt=0;fireCd=0;P.inv=0;P.gl=P.tk=0;gt=0;tpi=-1;tmSec=-1;thrLv=0;upsHud()}
+function resetArm(){for(const k in U)U[k]=0;U.shield=5;        // start every run with a full set of shields
+  for(let i=0;i<BN;i++)bul[i].on=0;for(let i=0;i<PKN;i++)pks[i].on=0;shrinkClear();knightReset();aquaReset();bridgeReset();lavaPreload();lavaSound(false);clearHaz();F.on=false;F.la=0;setKeyLabel(0);P.z=P.jt=0;fireCd=0;P.inv=0;P.gl=P.tk=0;gt=0;tpi=-1;tmSec=-1;thrLv=0;upsHud()}
 function fireBullet(x,y,a,d,p){for(let i=0;i<BN;i++){const b=bul[i];if(b.on)continue;b.on=1;b.x=x;b.y=y;b.vx=Math.cos(a)*900;b.vy=Math.sin(a)*900;b.l=1.4;b.d=d;b.p=p;return}}
 function stepShoot(dt){
   if(BR.on)return;                                        // the fire key is the Quick Embrace input here
@@ -554,8 +754,8 @@ function stepBul1(dt){
 }
 function kill(o,quiet){o.on=0;G.kills++;burst(o.x,o.y,14,320,.6,3.6,1,3);burst(o.x,o.y,6,200,.4,2.4,0,3);G.bonus+=10;shake(.05);sfx.kill();if(!quiet)popText(o.x,o.y-12,'+10','#ff6a66',17)}
 function shieldBreak(){   // a shield absorbs one hit, then blasts nearby cubes and grants brief invulnerability
-  U.shield--;upsHud();P.inv=1.1;
-  for(let j=0;j<ON;j++){const q=obs[j];if(q.on&&Math.hypot(q.x-P.x,q.y-P.y)<210)kill(q,true)}
+  U.shield--;upsHud();P.inv=1.7;
+  for(let j=0;j<ON;j++){const q=obs[j];if(q.on&&Math.hypot(q.x-P.x,q.y-P.y)<270)kill(q,true)}
   for(let i=0;i<36;i++){const a=i/36*TAU;emit(P.x,P.y,Math.cos(a)*640,Math.sin(a)*640,.55,3.4,0,4.5)}
   shake(.5);G.fl=Math.max(G.fl,.22);G.fc=0;slow(.14,.3);sfx.shield();toast('Shield broke','Nearby cubes destroyed');
 }
@@ -572,7 +772,12 @@ function collect(p){
   shake(.12);G.fl=Math.max(G.fl,.05);G.fc=0;sfx.up();
 }
 function stepPicks(dt){for(let i=0;i<PKN;i++){const p=pks[i];if(!p.on)continue;p.t+=dt;p.l-=dt;if(p.l<=0){p.on=0;burst(p.x,p.y,8,90,.4,2,0,3);continue}if((G.state==='play'||G.state==='menu')&&P.alive&&P.drop<=0&&Math.hypot(P.x-p.x,P.y-p.y)<26)collect(p)}}
-Object.assign(sfx,{shoot(){tone(760+rnd(0,80),.05,'triangle',.028,320)},hit(){tone(260,.05,'square',.025,140)},kill(){tone(200,.14,'sawtooth',.05,55);noise(.12,.1,1600)},up(){tone(520,.1,'sine',.07,780);setTimeout(()=>tone(780,.16,'sine',.07,1170),70)},shield(){noise(.4,.35,1400);tone(420,.3,'sine',.1,90)}});
+Object.assign(sfx,{shwarn(){tone(180,.5,'square',.045,120);noise(.3,.12,500)},
+  shmove(){tone(90,.9,'sawtooth',.07,54);noise(.8,.16,340)},
+  shlock(){tone(64,.5,'sine',.13,36);noise(.3,.3,260)},
+  shopen(){tone(150,.5,'sine',.06,330)},
+  dash(){tone(300,.14,'sawtooth',.05,80);noise(.1,.09,900)},split(){tone(420,.1,'square',.04,190);noise(.12,.08,1300)},
+  shoot(){tone(760+rnd(0,80),.05,'triangle',.028,320)},hit(){tone(260,.05,'square',.025,140)},kill(){tone(200,.14,'sawtooth',.05,55);noise(.12,.1,1600)},up(){tone(520,.1,'sine',.07,780);setTimeout(()=>tone(780,.16,'sine',.07,1170),70)},shield(){noise(.4,.35,1400);tone(420,.3,'sine',.1,90)}});
 
 /* ================= TP FEEDBACK + MENU DEMO ================= */
 const thrB=$('thr').children,tmEl=$('tm');let thrLv=0,tmSec=-1,lastTk=0,lastRd=0,dax=0,day=0,dait=0;
@@ -583,7 +788,7 @@ function tpTick(ti){   // each TP point gained: outline flash, spark, rising tic
 function tpReady(){if(G.state!=='play'||clock-lastRd<.6)return;lastRd=clock;P.tk=1;sfx.ready();tpEl.animate([{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:320,easing:'cubic-bezier(.2,.8,.2,1)'})}
 Object.assign(sfx,{tick(t){tone(480+t*9,.035,'sine',.022)},ready(){tone(880,.12,'sine',.06,1320)},nav(){tone(700,.035,'sine',.05,820)},tink(){tone(1500,.04,'square',.016,900)}});
 // attract mode: the menu runs a real, AI-piloted game behind the blur
-function demoReset(){clearHaz();for(let i=0;i<ON;i++)obs[i].on=0;for(let i=0;i<BN;i++)bul[i].on=0;P.x=AW/2;P.y=AH/2;P.vx=P.vy=0;P.inv=1;G.t=12;G.next=.6;G.tp=30;dait=0}
+function demoReset(){clearHaz();shrinkClear();for(let i=0;i<ON;i++)obs[i].on=0;for(let i=0;i<BN;i++)bul[i].on=0;P.x=AW/2;P.y=AH/2;P.vx=P.vy=0;P.inv=1;G.t=12;G.next=.6;G.tp=30;dait=0}
 function demoAI(dt){   // pick the safest of 9 moves by predicting cube positions ~0.5s ahead
   dait-=dt;if(dait>0)return;dait=.1;let bc=1e9;
   for(let c=0;c<9;c++){
@@ -856,13 +1061,14 @@ function startEv(){
          :(G.bForce||(G.aquaDone&&!G.bridgeDone&&G.t>170))?'bridge'
          :['floor','barrage','storm'][(Math.random()*3)|0];
   G.fForce=false;
+  shrinkClear();                                          // a set-piece needs the whole arena
   const solo=k==='knight'||k==='aqua'||k==='bridge';       // the set-piece encounters announce themselves
   G.ev=k;F.t=0;F.c=.5;F.n=0;
   if(k==='knight'){for(let i=0;i<HN;i++)hl[i].on=0}else{clearHaz();for(let i=0;i<ON;i++){const o=obs[i];if(o.on){burst(o.x,o.y,8,220,.5,3,1,3);o.on=0}}}
   if(!solo){toast(k==='floor'?'Floor collapse':k==='barrage'?'Barrage':'Laser storm',k==='floor'?(TOUCH?'Tap right to jump':'Space to jump'):k==='barrage'?'Keep moving':'Watch the lines');sfx.event();shake(.45);G.fl=Math.max(G.fl,.12);G.fc=0}
   if(k==='floor')buildFloor();if(k==='knight')startKnight();if(k==='aqua')startAqua();if(k==='bridge')startBridge();
 }
-function endEv(){G.ev=null;G.evT=lerp(42,30,G.diff);G.next=1.4;G.tp=Math.min(100,G.tp+50);G.upT=Math.min(G.upT,.6);toast('Survived','+50 TP');sfx.up()}
+function endEv(){G.ev=null;G.evT=lerp(50,38,G.diff);G.next=1.4;G.tp=Math.min(100,G.tp+50);G.upT=Math.min(G.upT,.6);toast('Survived','+50 TP');sfx.up()}
 function stepEv(dt){
   if(G.state!=='play')return;
   if(!G.ev){if(P.drop<=0&&(G.evT-=dt)<=0)startEv();return}
@@ -1368,8 +1574,8 @@ const BSEC=[   // wind, gravity, energy, name
 ];
 const BSEG=[0,.2,.4,.6,.85,1.01];                               // prog boundaries for those five
 const QEAT=[.09,.19,.29,.39,.49,.59,.69,.78,.87,.95];           // where a Quick Embrace is waiting
-const WSPD=152,HVY=.21,PRATE=.030;                              // wind drift, weight drag, crossing rate
-const KILLX=44,WARNX=230;                                       // the left edge pulverises you; the warning band before it
+const WSPD=132,HVY=.17,PRATE=.034;                              // wind drift, weight drag, crossing rate
+const KILLX=26,WARNX=260;                                       // the left edge pulverises you; the warning band before it
 const FOOT=()=>DKY-P.s/2;                                       // the player's feet rest on the deck
 const BR={on:false,st:'gone',t:0,prog:0,stam:100,sect:-1,w:1,g:1,en:.55,
   gust:0,gustT:3,qe:null,qi:0,low:0,flash:0,push:0,off:0,danger:0,wrn:0,cx0:0,bob:0,
@@ -1426,7 +1632,7 @@ function startBridge(){
   BR.st='intro';P.inv=99;P.z=0;P.jt=0;                              // nothing else can touch the player here
   Object.assign(P,{x:AW*.36,y:FOOT(),vx:0,vy:0});
   stamHud(true);feedShow(true);bridgeAudioStart();
-  toast('The Gravity Bridge','Cross it');nameplate(true,'The Gravity Bridge');
+  toast('The Gravity Bridge','Cross it');nameplate(true,'The Gravity Bridge',false);   // nothing here to damage, so no bar
   shake(.5);G.fl=Math.max(G.fl,.2);G.fc=0;slow(.5,.3);sfx.bform();
 }
 function bridgeEnd(){
@@ -1443,21 +1649,21 @@ function bridgeReset(){
 }
 
 /* --- Quick Embrace: a ring collapses onto a target band, hit FIRE inside it --- */
-function qeStart(){BR.qe={t:0,dur:lerp(1.15,.80,BR.prog),res:0,ht:0};sfx.qecall();G.fl=Math.max(G.fl,.05);G.fc=0}
+function qeStart(){BR.qe={t:0,dur:lerp(1.45,1.08,BR.prog),res:0,ht:0};sfx.qecall();G.fl=Math.max(G.fl,.05);G.fc=0}
 function qeResolve(ok){
   const q=BR.qe;q.res=ok?1:-1;q.ht=0;
-  if(ok){BR.stam=Math.min(100,BR.stam+16);BR.flash=Math.max(BR.flash,.5);shake(.3);slow(.16,.38);
+  if(ok){BR.stam=Math.min(100,BR.stam+21);BR.flash=Math.max(BR.flash,.5);shake(.3);slow(.16,.38);
     for(let i=0;i<34;i++){const a=i/34*TAU;emit(P.x,P.y,Math.cos(a)*420,Math.sin(a)*420,.7,3.4,2,3.2)}
-    popText(P.x,P.y-48,'+16','#8dffa0',27);sfx.qeok()}
-  else{BR.stam=Math.max(0,BR.stam-14);BR.gust=1.7;shake(.34);
-    burst(P.x,P.y,14,260,.5,3,1,3);popText(P.x,P.y-44,'-14','#ff6a66',22);sfx.qebad()}
+    popText(P.x,P.y-48,'+21','#8dffa0',27);sfx.qeok()}
+  else{BR.stam=Math.max(0,BR.stam-9);BR.gust=1.25;shake(.26);
+    burst(P.x,P.y,14,260,.5,3,1,3);popText(P.x,P.y-44,'-9','#ff6a66',22);sfx.qebad()}
 }
 function stepQE(dt){
   const q=BR.qe;if(!q)return;
   if(q.res){q.ht+=dt;if(q.ht>.55)BR.qe=null;return}
   q.t+=dt;
   const r=1-q.t/q.dur;
-  if(keys.f&&!BR.pf)qeResolve(r<.24&&r>.075);                      // a much tighter target band
+  if(keys.f&&!BR.pf)qeResolve(r<.34&&r>.04);                      // a much tighter target band
   else if(q.t>=q.dur)qeResolve(false);
 }
 
@@ -1468,10 +1674,10 @@ function stepBridge(dt){
   const sect=Math.max(0,BSEG.findIndex((v,i)=>BR.prog>=v&&BR.prog<BSEG[i+1]));
   if(BR.st==='cross'&&sect!==BR.sect){BR.sect=sect;const S=BSEC[sect];
     if(sect>0){toast('Section '+(sect+1),S.n);shake(.3);G.fl=Math.max(G.fl,.08);G.fc=0;sfx.bsect();
-      BR.stam=Math.min(100,BR.stam+7);popText(P.x,P.y-62,'+7','#8dffa0',20)}}
+      BR.stam=Math.min(100,BR.stam+11);popText(P.x,P.y-62,'+11','#8dffa0',20)}}
   const S=BSEC[BR.sect<0?0:BR.sect];
   const ramp=BR.st==='intro'?clamp((BR.t-1.6)/1.4,0,1):BR.st==='cross'?1:BR.st==='win'?Math.max(0,1-BR.t/.9):1;
-  BR.w=S.w*ramp*(1+BR.gust*.40);BR.g=S.g*ramp;BR.en=S.e*(BR.st==='intro'?clamp(BR.t/2.2,0,1):1);
+  BR.w=S.w*ramp*(1+BR.gust*.26);BR.g=S.g*ramp;BR.en=S.e*(BR.st==='intro'?clamp(BR.t/2.2,0,1):1);
   bridgeAudioLevel(BR.w,BR.g);
   if(BR.gust>0)BR.gust=Math.max(0,BR.gust-dt*.8);
 
@@ -1504,14 +1710,14 @@ function stepBridge(dt){
     BR.prog=clamp(BR.prog+(BR.push>0?BR.push*PRATE:BR.push*PRATE*.55)*dt,0,1);
     BR.off=P.x<AW*.19?clamp((AW*.19-P.x)/(AW*.14),0,1):0;         // pinned against the upwind end
     // stamina
-    let drain=lerp(3.4,5.8,BR.prog)+(keys.r||(tmv>=0&&tax>.25)?2.7:0)+BR.danger*5;
-    if(!keys.r&&tax<=.25&&BR.danger<.05)drain-=5.5;               // easing off recovers, but the wind takes ground back
+    let drain=lerp(3.6,5.6,BR.prog)+(keys.r||(tmv>=0&&tax>.25)?2.4:0)+BR.danger*3;
+    if(!keys.r&&tax<=.25&&BR.danger<.05)drain-=6.4;               // easing off recovers, but the wind takes ground back
     BR.stam=clamp(BR.stam-drain*dt,0,100);
     if(BR.stam<28){BR.low+=dt;if(BR.low>.75){BR.low=0;sfx.stamlow()}}else BR.low=0;
     if(!BR.qe&&BR.qi<QEAT.length&&BR.prog>=QEAT[BR.qi]){BR.qi++;qeStart()}
     stepQE(dt);
     G.tr=Math.max(G.tr,.06+.12*BR.g*(1+BR.gust));
-    if(BR.gustT-=dt,BR.gustT<=0){BR.gustT=lerp(4.2,2.3,BR.prog);BR.gust=1.45;sfx.gust();shake(.3);BR.flash=Math.max(BR.flash,.14)}
+    if(BR.gustT-=dt,BR.gustT<=0){BR.gustT=lerp(5.4,3.4,BR.prog);BR.gust=1.1;sfx.gust();shake(.3);BR.flash=Math.max(BR.flash,.14)}
     if(BR.stam<=0){BR.st='fail';BR.t=0;shake(.8);G.fl=Math.max(G.fl,.3);G.fc=0;slow(1,.22);sfx.bfail()}
     else if(BR.prog>=1){BR.st='win';BR.t=0;BR.qe=null;shake(.7);BR.flash=1;slow(.8,.3);sfx.bwin()}
     break}
@@ -1900,7 +2106,7 @@ addEventListener('resize',feedSize);feedSize();
 
 /* ================= FLOW ================= */
 function die(){
-  G.state='dying';G.dyT=0;P.alive=false;knightAbort();aquaAbort();bridgeAbort();lavaSound(false);G.chain=0;G.chainT=0;G.nb=G.score>best;if(G.nb){best=G.score;store.set('cube-best',String(best))}
+  G.state='dying';G.dyT=0;P.alive=false;knightAbort();aquaAbort();bridgeAbort();shrinkClear();lavaSound(false);G.chain=0;G.chainT=0;G.nb=G.score>best;if(G.nb){best=G.score;store.set('cube-best',String(best))}
   freeze=.11;slow(.9,.22);shake(1);G.fl=.6;G.fc=2;cam.zk+=reduce?0:.03;   // hit-stop → slow-mo → shake → flash
   burst(P.x,P.y,30,560,1.2,8,0,2.2);burst(P.x,P.y,34,720,.95,5.5,1,2.6);sfx.death();
 }
@@ -1936,12 +2142,12 @@ function update(dt){
   ts=freeze>0?0:damp(ts,slowT>0?slowTo:1,slowT>0?30:6,dt);const sd=dt*ts;   // sd = gameplay (slowable) time
   G.fl=damp(G.fl,0,6,dt);G.tr=Math.max(0,G.tr-dt*1.5);G.nmCd-=dt;gt+=sd;P.inv=Math.max(0,P.inv-sd);K.fr=damp(K.fr,K.on?1:0,2.2,dt);if(G.chainT>0){G.chainT-=dt;if(G.chainT<=0)G.chain=0}
   if(G.state==='play'||G.state==='menu'){
-    G.t+=sd;G.diff=1-Math.exp(-G.t/70);G.speed=210*(1+G.diff*1.05);            // difficulty curve
-    if(P.drop<=0&&!G.ev){G.next-=sd;if(G.next<=0){spawnPattern();G.next+=lerp(1.05,.34,G.diff)*rnd(.8,1.2)}}
+    G.t+=sd;G.diff=1-Math.exp(-G.t/118);G.speed=210*(1+G.diff*.86);           // difficulty curve (gentler, so a run breathes)
+    if(P.drop<=0&&!G.ev){G.next-=sd;if(G.next<=0){spawnPattern();G.next+=(SH.on?2.6:0)+lerp(1.3,.5,G.diff)*rnd(.85,1.2)}}
     const sc=(G.t*10+G.bonus)|0;if(sc!==G.score){G.score=sc;hudUpdate()}
-    G.upT-=sd;if(G.upT<=0){if(!BR.on)spawnPick();G.upT=lerp(13,9,G.diff)}   // an upgrade appears every ~10s
+    G.upT-=sd;if(G.upT<=0){if(!BR.on)spawnPick();G.upT=lerp(10,7,G.diff)}    // an upgrade appears every ~8s
   }
-  gz=0;stepPlayer(sd);stepJump(sd);stepObs(sd);stepHaz(sd);stepHoles(sd);stepEv(sd);stepKnives(sd);stepShoot(sd);stepBul(sd);stepPicks(sd);stepParts(sd);stepText(dt);
+  gz=0;stepShrink(sd);stepPlayer(sd);stepJump(sd);stepObs(sd);stepHaz(sd);stepHoles(sd);stepEv(sd);stepKnives(sd);stepShoot(sd);stepBul(sd);stepPicks(sd);stepParts(sd);stepText(dt);
   if((G.state==='play'||G.state==='menu')&&P.alive)G.tp=Math.min(100,G.tp+gz*32*(1+.4*U.graze)*sd);
   for(let i=0;i<dust.length;i++){const d=dust[i];d.x+=d.vx*d.z*dt;d.y+=d.vy*d.z*dt;if(d.y<-150)d.y=AH+150;if(d.x<-200)d.x=AW+200;if(d.x>AW+200)d.x=-200}
   if(!Number.isFinite(P.x)||!Number.isFinite(P.y)||!Number.isFinite(P.vx)||!Number.isFinite(P.vy)){
@@ -2010,11 +2216,16 @@ function render(){
   for(let i=0;i<ON;i++){const o=obs[i];if(!o.on)continue;
     if(o.a<=0)continue;const s=o.s*easeOutBack(o.a),e=o.a*o.a;
     ctx.globalCompositeOperation='lighter';A(.6*Math.min(1,o.a*1.5));ctx.drawImage(glowR,o.x-s*1.5,o.y-s*1.5,s*3,s*3);
-    ctx.globalCompositeOperation='source-over';ctx.fillStyle=o.f>0?'#fff':o.h>0?'#ff5c57':'#ee1c25';
+    ctx.globalCompositeOperation='source-over';
+    const wind=o.b===1&&!o.bf&&o.a>=1;
+    ctx.fillStyle=o.f>0?'#fff':wind?(Math.sin(clock*26)>0?'#ffd166':'#ff8a2e'):o.h>0?'#ff5c57':o.b===4?'#ff7a3c':'#ee1c25';
+    if(wind){const u=clamp(o.bt/o.bp,0,1);ctx.globalCompositeOperation='lighter';A(.5*(1-u));
+      ctx.strokeStyle='rgba(255,190,90,1)';ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(o.x,o.y,s*.6+42*(1-u),0,TAU);ctx.stroke();
+      ctx.globalCompositeOperation='source-over';A(1)}
     for(let j=4;j>0;j--){const t=j*.024,q=s*(1-j*.05);A(.15*(1-j/5));ctx.save();ctx.translate(o.x-o.vx*e*t,o.y-o.vy*e*t);ctx.rotate(o.r-o.vr*t);rr(-q/2,-q/2,q,q,q*.18);ctx.fill();ctx.restore()}
     A(1);ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.k===1?Math.atan2(o.vy,o.vx):o.r);if(o.k===1){const sq=1+Math.min(1.6,Math.hypot(o.vx,o.vy)/650);ctx.scale(sq,1/Math.sqrt(sq))}rr(-s/2,-s/2,s,s,s*.18);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
   }
-  drawKnives();
+  drawKnives();drawShrink();
   // laser beams + blast zones, clipped to the arena
   ctx.save();rr(0,0,AW,AH,26);ctx.clip();
   for(let i=0;i<HN;i++)if(hl[i].on)drawHole(hl[i]);
