@@ -1360,18 +1360,19 @@ if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))
 const glowG=glow('96,255,150'),glowA=glow('255,176,86');       // energy green, and the warm haze behind it
 const DKY=AH*.62,DKH=92,TOWH=232,SPAN=620;                      // deck surface, slab depth, tower height, bay width
 const BSEC=[   // wind, gravity, energy, name
-  {w:1.00,g:1.00,e:.55,n:'The span forms'},
-  {w:1.28,g:1.26,e:.70,n:'Heavier'},
-  {w:1.55,g:1.52,e:.85,n:'Unstable'},
-  {w:1.82,g:1.78,e:1.00,n:'It will not hold'},
-  {w:2.05,g:2.00,e:1.20,n:'The far side'}
+  {w:1.10,g:1.10,e:.55,n:'The span forms'},
+  {w:1.42,g:1.42,e:.70,n:'Heavier'},
+  {w:1.70,g:1.68,e:.85,n:'Unstable'},
+  {w:1.90,g:1.88,e:1.00,n:'It will not hold'},
+  {w:2.02,g:2.02,e:1.20,n:'The far side'}
 ];
 const BSEG=[0,.2,.4,.6,.85,1.01];                               // prog boundaries for those five
-const QEAT=[.10,.22,.34,.46,.58,.70,.81,.91];                   // where a Quick Embrace is waiting
-const WSPD=142,HVY=.22,PRATE=.040;                              // wind drift, weight drag, crossing rate
+const QEAT=[.09,.19,.29,.39,.49,.59,.69,.78,.87,.95];           // where a Quick Embrace is waiting
+const WSPD=152,HVY=.21,PRATE=.030;                              // wind drift, weight drag, crossing rate
+const KILLX=44,WARNX=230;                                       // the left edge pulverises you; the warning band before it
 const FOOT=()=>DKY-P.s/2;                                       // the player's feet rest on the deck
 const BR={on:false,st:'gone',t:0,prog:0,stam:100,sect:-1,w:1,g:1,en:.55,
-  gust:0,gustT:3,qe:null,qi:0,low:0,flash:0,push:0,off:0,bob:0,
+  gust:0,gustT:3,qe:null,qi:0,low:0,flash:0,push:0,off:0,danger:0,wrn:0,cx0:0,bob:0,
   dust:[],deb:[],rib:[],trail:[],wake:[],vine:[],wacc:0,hum:null,wind:null,pf:false};
 for(let i=0;i<72;i++)BR.dust.push({x:rnd(0,AW),y:rnd(0,AH),z:rnd(.3,1),s:rnd(1,3)});
 for(let i=0;i<24;i++)BR.deb.push({x:rnd(0,AW),y:rnd(0,DKY),vy:0,r:rnd(0,TAU),vr:rnd(-2,2),s:rnd(5,15),z:rnd(.45,1)});
@@ -1408,7 +1409,7 @@ function bridgeAudioLevel(wind,grav){
 /* --- lifecycle --- */
 function startBridge(){
   G.bForce=false;BR.on=true;BR.t=0;BR.prog=0;BR.stam=100;BR.sect=-1;BR.qe=null;BR.qi=0;
-  BR.gust=0;BR.gustT=4;BR.low=0;BR.flash=0;BR.push=0;BR.off=0;BR.bob=0;BR.w=1;BR.g=1;BR.en=0;
+  BR.gust=0;BR.gustT=4;BR.low=0;BR.flash=0;BR.push=0;BR.off=0;BR.danger=0;BR.wrn=0;BR.bob=0;BR.w=1;BR.g=1;BR.en=0;
   for(let i=0;i<BR.trail.length;i++)BR.trail[i].l=0;
   BR.rib.length=0;for(let i=0;i<16;i++)BR.rib.push({p:i/16,on:0});
   BR.vine.length=0;BR.wacc=0;
@@ -1423,7 +1424,7 @@ function startBridge(){
     if(pts.length>2)BR.vine.push({pts,w:rnd(1.6,3.8),ph:rnd(0,TAU),nodes:[rnd(.35,.7),rnd(.7,.95)]});}
   for(let i=0;i<BR.wake.length;i++)BR.wake[i].on=0;
   BR.st='intro';P.inv=99;P.z=0;P.jt=0;                              // nothing else can touch the player here
-  Object.assign(P,{x:AW*.22,y:FOOT(),vx:0,vy:0});
+  Object.assign(P,{x:AW*.36,y:FOOT(),vx:0,vy:0});
   stamHud(true);feedShow(true);bridgeAudioStart();
   toast('The Gravity Bridge','Cross it');nameplate(true,'The Gravity Bridge');
   shake(.5);G.fl=Math.max(G.fl,.2);G.fc=0;slow(.5,.3);sfx.bform();
@@ -1442,21 +1443,21 @@ function bridgeReset(){
 }
 
 /* --- Quick Embrace: a ring collapses onto a target band, hit FIRE inside it --- */
-function qeStart(){BR.qe={t:0,dur:lerp(1.5,1.12,BR.prog),res:0,ht:0};sfx.qecall();G.fl=Math.max(G.fl,.05);G.fc=0}
+function qeStart(){BR.qe={t:0,dur:lerp(1.15,.80,BR.prog),res:0,ht:0};sfx.qecall();G.fl=Math.max(G.fl,.05);G.fc=0}
 function qeResolve(ok){
   const q=BR.qe;q.res=ok?1:-1;q.ht=0;
-  if(ok){BR.stam=Math.min(100,BR.stam+34);BR.flash=Math.max(BR.flash,.5);shake(.3);slow(.16,.38);
+  if(ok){BR.stam=Math.min(100,BR.stam+16);BR.flash=Math.max(BR.flash,.5);shake(.3);slow(.16,.38);
     for(let i=0;i<34;i++){const a=i/34*TAU;emit(P.x,P.y,Math.cos(a)*420,Math.sin(a)*420,.7,3.4,2,3.2)}
-    popText(P.x,P.y-48,'+34','#8dffa0',27);sfx.qeok()}
-  else{BR.stam=Math.max(0,BR.stam-12);BR.gust=1.6;shake(.22);
-    burst(P.x,P.y,14,260,.5,3,1,3);popText(P.x,P.y-44,'-12','#ff6a66',22);sfx.qebad()}
+    popText(P.x,P.y-48,'+16','#8dffa0',27);sfx.qeok()}
+  else{BR.stam=Math.max(0,BR.stam-14);BR.gust=1.7;shake(.34);
+    burst(P.x,P.y,14,260,.5,3,1,3);popText(P.x,P.y-44,'-14','#ff6a66',22);sfx.qebad()}
 }
 function stepQE(dt){
   const q=BR.qe;if(!q)return;
   if(q.res){q.ht+=dt;if(q.ht>.55)BR.qe=null;return}
   q.t+=dt;
   const r=1-q.t/q.dur;
-  if(keys.f&&!BR.pf)qeResolve(r<.30&&r>.07);                      // the target band
+  if(keys.f&&!BR.pf)qeResolve(r<.24&&r>.075);                      // a much tighter target band
   else if(q.t>=q.dur)qeResolve(false);
 }
 
@@ -1466,10 +1467,11 @@ function stepBridge(dt){
   BR.t+=dt;
   const sect=Math.max(0,BSEG.findIndex((v,i)=>BR.prog>=v&&BR.prog<BSEG[i+1]));
   if(BR.st==='cross'&&sect!==BR.sect){BR.sect=sect;const S=BSEC[sect];
-    if(sect>0){toast('Section '+(sect+1),S.n);shake(.3);G.fl=Math.max(G.fl,.08);G.fc=0;sfx.bsect()}}
+    if(sect>0){toast('Section '+(sect+1),S.n);shake(.3);G.fl=Math.max(G.fl,.08);G.fc=0;sfx.bsect();
+      BR.stam=Math.min(100,BR.stam+7);popText(P.x,P.y-62,'+7','#8dffa0',20)}}
   const S=BSEC[BR.sect<0?0:BR.sect];
   const ramp=BR.st==='intro'?clamp((BR.t-1.6)/1.4,0,1):BR.st==='cross'?1:BR.st==='win'?Math.max(0,1-BR.t/.9):1;
-  BR.w=S.w*ramp*(1+BR.gust*.45);BR.g=S.g*ramp;BR.en=S.e*(BR.st==='intro'?clamp(BR.t/2.2,0,1):1);
+  BR.w=S.w*ramp*(1+BR.gust*.40);BR.g=S.g*ramp;BR.en=S.e*(BR.st==='intro'?clamp(BR.t/2.2,0,1):1);
   bridgeAudioLevel(BR.w,BR.g);
   if(BR.gust>0)BR.gust=Math.max(0,BR.gust-dt*.8);
 
@@ -1488,21 +1490,28 @@ function stepBridge(dt){
     P.y=FOOT();P.vy=0;
     P.x-=BR.w*WSPD*dt;                                            // the gale, pushing you back
     P.x-=P.vx*HVY*(BR.g-1)*dt;                                    // the weight, resisting every move
-    P.x=clamp(P.x,46,AW-46);
+    P.x=Math.min(P.x,AW-46);
+    BR.danger=P.x<WARNX?clamp((WARNX-P.x)/(WARNX-KILLX),0,1):0;
+    if(BR.danger>.35){BR.wrn+=dt;if(BR.wrn>.28-.18*BR.danger){BR.wrn=0;sfx.edge(BR.danger)}}else BR.wrn=0;
+    if(P.x<=KILLX){BR.st='crush';BR.t=0;BR.cx0=P.x;BR.qe=null;
+      shake(1);G.fl=Math.max(G.fl,.45);G.fc=0;slow(1.1,.18);sfx.crush();
+      for(let i=0;i<60;i++){const a=rnd(-1.5,1.5);
+        emit(P.x,P.y+rnd(-16,16),-rnd(300,1100),Math.sin(a)*rnd(60,340),rnd(.5,1.1),rnd(2.6,5),0,1.4)}
+      break}
     BR.bob=damp(BR.bob,BR.g-1,5,dt);
     // progress: ground is only gained to the right of the line, and lost when you are driven back
     BR.push=clamp((P.x-AW*.30)/(AW*.34),-1,1);
     BR.prog=clamp(BR.prog+(BR.push>0?BR.push*PRATE:BR.push*PRATE*.55)*dt,0,1);
     BR.off=P.x<AW*.19?clamp((AW*.19-P.x)/(AW*.14),0,1):0;         // pinned against the upwind end
     // stamina
-    let drain=lerp(2.0,3.6,BR.prog)+(keys.r||(tmv>=0&&tax>.25)?1.8:0)+BR.off*5;
-    if(!keys.r&&tax<=.25&&BR.off<.05)drain-=4.0;                  // easing off is a real breather
+    let drain=lerp(3.4,5.8,BR.prog)+(keys.r||(tmv>=0&&tax>.25)?2.7:0)+BR.danger*5;
+    if(!keys.r&&tax<=.25&&BR.danger<.05)drain-=5.5;               // easing off recovers, but the wind takes ground back
     BR.stam=clamp(BR.stam-drain*dt,0,100);
     if(BR.stam<28){BR.low+=dt;if(BR.low>.75){BR.low=0;sfx.stamlow()}}else BR.low=0;
     if(!BR.qe&&BR.qi<QEAT.length&&BR.prog>=QEAT[BR.qi]){BR.qi++;qeStart()}
     stepQE(dt);
     G.tr=Math.max(G.tr,.06+.12*BR.g*(1+BR.gust));
-    if(BR.gustT-=dt,BR.gustT<=0){BR.gustT=lerp(6.5,4,BR.prog);BR.gust=1.1;sfx.gust();shake(.2)}
+    if(BR.gustT-=dt,BR.gustT<=0){BR.gustT=lerp(4.2,2.3,BR.prog);BR.gust=1.45;sfx.gust();shake(.3);BR.flash=Math.max(BR.flash,.14)}
     if(BR.stam<=0){BR.st='fail';BR.t=0;shake(.8);G.fl=Math.max(G.fl,.3);G.fc=0;slow(1,.22);sfx.bfail()}
     else if(BR.prog>=1){BR.st='win';BR.t=0;BR.qe=null;shake(.7);BR.flash=1;slow(.8,.3);sfx.bwin()}
     break}
@@ -1512,6 +1521,14 @@ function stepBridge(dt){
     if(BR.t<.1)for(let i=0;i<70;i++){const a=rnd(0,TAU),v=rnd(260,760);emit(P.x,P.y,Math.cos(a)*v,Math.sin(a)*v,1.1,4,2,1.6)}
     if(BR.t>1.5&&BR.t<1.56){G.fl=Math.max(G.fl,.5);G.fc=0;shake(.4)}
     if(u>=1){bridgeEnd();return}
+    break}
+  case 'crush':{   // dragged into the edge and pulverised
+    const u=clamp(BR.t/1.15,0,1);
+    P.x=lerp(BR.cx0,-40,easeIn3(u));P.y=FOOT();P.vx=P.vy=0;
+    P.qx=-.55*u;P.qy=.7*u;P.qxv=P.qyv=0;                          // squeezed to nothing
+    G.tr=Math.max(G.tr,.45+.55*u);
+    if(Math.random()<.9)emit(P.x+rnd(-10,10),P.y+rnd(-18,18),-rnd(400,1300),rnd(-200,200),rnd(.3,.8),rnd(2,4.6),0,1.2);
+    if(u>=1){bridgeAbort();die();return}
     break}
   default:{        // fail: the energy implodes and the weight finishes the job
     const u=clamp(BR.t/1.5,0,1);
@@ -1667,6 +1684,26 @@ function drawBridgeFore(){
   const DB=DKY+DKH,gr=greenAmt();
   const cFar=mixc('#ffb060','#7dffb4',gr),cNear=mixc('#ffdcaa','#c8ffdd',gr);
   ctx.save();rr(0,0,AW,AH,26);ctx.clip();
+  // the left edge: a grinding wall. Reach it and you are pulverised, so it is drawn loud.
+  if(BR.on){
+    const dz=BR.danger||0,ww=KILLX+22;
+    ctx.globalCompositeOperation='source-over';
+    const gw=ctx.createLinearGradient(0,0,ww+96,0);
+    gw.addColorStop(0,'rgba(0,0,0,.96)');gw.addColorStop(.5,'rgba(12,3,3,.74)');gw.addColorStop(1,'rgba(0,0,0,0)');
+    A(1);ctx.fillStyle=gw;ctx.fillRect(0,0,ww+96,AH);
+    ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<26;i++){const sd=i*53.7,
+      q=((clock*(1.5+((sd*.011)%1))+((sd*.017)%1))%1),
+      y=((sd*.031)%1)*AH,h=10+42*((sd*.007)%1);
+      A((.22+.55*dz)*Math.sin(q*Math.PI));
+      ctx.fillStyle=dz>.5?'rgba(255,130,95,1)':'rgba(190,255,215,1)';
+      ctx.fillRect(q*ww*1.15-8,y,3+7*q,h)}
+    A(.26+.5*dz);ctx.drawImage(glowG,-130,AH/2-270,260,540);
+    if(dz>.02){A(dz*.6);ctx.drawImage(glowR,-170,AH/2-330,340,660);
+      ctx.strokeStyle='rgba(255,90,70,'+(dz*(.5+.5*Math.sin(clock*14))).toFixed(3)+')';ctx.lineWidth=3+5*dz;
+      ctx.beginPath();ctx.moveTo(KILLX,0);ctx.lineTo(KILLX,AH);ctx.stroke()}
+    ctx.globalCompositeOperation='source-over';A(1);
+  }
   ctx.globalCompositeOperation='lighter';
   for(let i=0;i<BR.deb.length;i++){const b=BR.deb[i],s=b.s*b.z;
     A(.14+.3*b.z);ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.r);
@@ -1724,6 +1761,9 @@ function drawBridgeFore(){
       ctx.beginPath();ctx.arc(P.x,P.y,rt+u*110,0,TAU);ctx.stroke();
       ctx.globalCompositeOperation='source-over';A(1)}
     ctx.restore()}
+  if(BR.danger>.02){const dv=ctx.createLinearGradient(0,0,AW*.5,0);
+    dv.addColorStop(0,'rgba(255,40,30,'+(BR.danger*.4).toFixed(3)+')');dv.addColorStop(1,'rgba(255,40,30,0)');
+    A(1);ctx.fillStyle=dv;ctx.fillRect(0,0,AW*.5,AH)}
   if(BR.flash>.004){A(BR.flash*.4);ctx.fillStyle=mixc('#ffeec4','#dcffe8',gr);ctx.fillRect(0,0,AW,AH);A(1)}
 }
 /* --- the player carries no aura of its own now: a contact shadow, and a white glow so the cube
@@ -1748,6 +1788,8 @@ Object.assign(sfx,{
   qeok(){tone(620,.14,'sine',.09,980);setTimeout(()=>tone(980,.22,'sine',.08,1480),80)},
   qebad(){tone(200,.3,'sawtooth',.09,70);noise(.2,.16,500)},
   stamlow(){tone(300,.1,'square',.045,210)},
+  edge(d){tone(120+260*d,.07,'square',.03+.05*d,70)},
+  crush(){noise(1.2,.6,260);tone(70,1.3,'sawtooth',.2,20);tone(190,.5,'square',.08,40)},
   bfail(){noise(1,.45,300);tone(60,1.1,'sawtooth',.16,22)},
   bwin(){tone(330,.5,'sine',.1,990);setTimeout(()=>tone(500,.5,'sine',.09,1480),120);setTimeout(()=>tone(740,.7,'sine',.08,1980),260)}
 });
