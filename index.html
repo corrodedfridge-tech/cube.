@@ -54,6 +54,8 @@ canvas.dim{filter:blur(4px) brightness(.5)}
 #bf{background:var(--red);box-shadow:0 0 12px rgba(255,42,42,.6);transform:scaleX(0);transition:transform 1.4s var(--ease)}
 #boss.on #bf{transform:scaleX(1)}
 #boss.nobar #bb,#boss.nobar #bn i{display:none}   /* set-pieces with nothing to damage */
+#boss.live #bf{transition:transform .2s linear;background:linear-gradient(90deg,#ffdf8a,#fff6dc);box-shadow:0 0 14px rgba(255,226,150,.75)}
+#boss.live #bn i{display:none}
 
 /* announcement banner */
 #banner{position:absolute;left:0;right:0;top:21vh;text-align:center;opacity:0}
@@ -203,6 +205,33 @@ body.touch.port #rot{display:block}
  .stats span{font-size:11px}
 }
 
+.up.off{display:none}        /* twelve upgrades exist; the row only shows the ones you hold */
+/* ---------- upgrade cards ---------- */
+body.picking #foot,body.picking #chain,body.picking #touch,body.picking #boss{opacity:0;pointer-events:none;transition:opacity .2s}
+#cardrow{display:flex;gap:18px;margin:3vh 0 2vh;flex-wrap:wrap;justify-content:center}
+.card{position:relative;width:min(232px,27vw);min-height:250px;padding:22px 19px 19px;cursor:pointer;
+ display:flex;flex-direction:column;align-items:center;text-align:center;
+ background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);border-radius:12px;
+ transition:transform .18s var(--ease),border-color .18s,background .18s,box-shadow .18s}
+.card:hover{transform:translateY(-4px)}
+.card.sel{border-color:var(--red);background:rgba(255,42,42,.09);transform:translateY(-7px);
+ box-shadow:0 0 0 1px var(--red),0 14px 44px rgba(255,42,42,.26)}
+.card svg{width:46px;height:46px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin-bottom:13px;opacity:.9}
+.card.sel svg{stroke:#fff;opacity:1}
+.card h4{font-size:17px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin-bottom:5px}
+.card .lv{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+.card.new .lv{color:var(--red)}
+.card p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.62);margin:0}
+.card .pp{display:flex;gap:4px;margin-top:auto;padding-top:15px}
+.card .pp b{width:16px;height:4px;background:rgba(255,255,255,.17);border-radius:2px}
+.card .pp b.l{background:var(--red);box-shadow:0 0 8px rgba(255,42,42,.7)}
+.chint{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.chint kbd{display:inline-block;padding:3px 7px;margin:0 2px;border:1px solid var(--line);border-radius:4px;font:inherit}
+#ws{font-size:clamp(66px,15vh,150px);font-weight:700;line-height:.9;letter-spacing:-.02em}
+#wttl{color:#ffe9b0}
+@media (max-width:860px){.card{width:min(188px,29vw);min-height:214px;padding:16px 13px 14px}
+ .card p{font-size:11.5px}.card h4{font-size:14px}#cardrow{gap:11px}}
+
 /* ---------- version stamp + devlog ---------- */
 .ver{margin-top:-6px;font-size:12px;font-weight:700;letter-spacing:.34em;color:rgba(255,255,255,.3)}
 #log{justify-content:flex-start;padding:5vh 0 3vh}
@@ -294,7 +323,7 @@ body.touch.port #vfeed.on{transform:scale(1)}
  <div id="cube3d"><div id="cg"></div><div id="cbx"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i><i class="g"></i></div></div>
  <h1 class="logo">CUBE</h1>
  <p class="tag">Dodge the red cubes</p>
- <p class="ver" id="verl">v1.0</p>
+ <p class="ver" id="verl">v1.1</p>
  <div class="list"><button class="btn on" data-a="play" tabindex="-1">Play</button><button class="btn" data-a="log" tabindex="-1">Devlog</button><button class="btn hid" id="installb" data-a="install" tabindex="-1">Install app</button></div>
  <p class="hs" id="hs"></p>
  <p id="rot">Rotate your device for a bigger arena</p>
@@ -305,6 +334,56 @@ body.touch.port #vfeed.on{transform:scale(1)}
 <div id="log" class="scr">
  <h2 class="big">Devlog</h2>
  <div id="logs">
+
+  <article class="ent">
+   <header><h3>v1.1 <i>The Ninth Angle</i></h3><time>8 October 2026</time></header>
+   <p>The run has an ending now, and the upgrades stopped being something that happens to you.</p>
+
+   <h4>Pick a card</h4>
+   <p>A pickup used to hand you whatever it felt like. Now it stops the arena and offers three,
+      and you take one. That single choice is the whole difference between two runs: you can
+      chase a shooting build, or a dodging one, or hoard shields and brawl. Keyboard, mouse or
+      thumb &mdash; all three work.</p>
+
+   <h4>Twelve upgrades</h4>
+   <p>The old six are still there. Six more join them:</p>
+   <ul>
+    <li><b>Homing</b> &mdash; shots curve toward whatever is nearest.</li>
+    <li><b>Orbit</b> &mdash; a shard circles you and breaks small cubes it touches, then recharges.</li>
+    <li><b>Magnet</b> &mdash; pickups pull toward you from across the arena.</li>
+    <li><b>Phase</b> &mdash; the dash recharges sooner and carries further.</li>
+    <li><b>Surge</b> &mdash; hit a five chain and your fire rate doubles for a few seconds.</li>
+    <li><b>Chrono</b> &mdash; every near miss drags time out for a moment.</li>
+   </ul>
+   <p>They are deliberately uneven in how often they come up. Orbit and Chrono are rare because
+      they are strong; Orbit cannot touch the big cubes and needs most of a second to recharge
+      after each kill, or it would just mow the arena for you. The footer only shows what you
+      actually hold, so the row grows as the run does.</p>
+
+   <h4>The Ninth Angle</h4>
+   <p>Five minutes in, if you are still alive, something arrives that the game has no vocabulary
+      for. It is not a creature. What you fight is the part of it that intersects the arena,
+      the way a hand pushed through water is only ever a ring of wet.</p>
+   <p>Its body is a tesseract turning in the XW and YW planes, so from here it looks like a cube
+      endlessly folding through itself &mdash; the maths is real, four-dimensional coordinates
+      projected down twice. Three wheels of eyes turn around it at their own speeds. A halo
+      holds perfectly still while everything else moves. The arena loses its colour while it is
+      present, and it is lit in gold and violet, which nothing else in CUBE uses.</p>
+   <p>It never walks. It withdraws and re-enters. Its attacks are all cross-sections &mdash;
+      polygons that bloom open in the arena, growing extra sides as they go, because what is
+      passing through is not a flat thing, then shattering into the cubes they always were. The
+      eyes burn tracking lines. It unfolds into its own net and drops a blast from every cell.
+      It inhales and breathes the arena back out as a spiral.</p>
+   <p>Unlike the Roaring Knight, it can be hurt. Three shells, each one harder than the last, and
+      a wheel shatters off every time one breaks. Break all three and you have beaten CUBE &mdash;
+      the first ending the game has ever had. You can stop there, or keep going into a run with
+      nothing left to end it.</p>
+
+   <h4>Balance</h4>
+   <p>The boss is a real damage check, so a run that ignored shooting entirely will struggle.
+      That is intended: five minutes is long enough to have made your choices, and the cards
+      mean you had them to make.</p>
+  </article>
 
   <article class="ent">
    <header><h3>v1.0 <i>First release</i></h3><time>6 October 2026</time></header>
@@ -382,6 +461,21 @@ body.touch.port #vfeed.on{transform:scale(1)}
  <div class="keys"><span><kbd>↑</kbd><kbd>↓</kbd>Select</span><span><kbd>Enter</kbd>Confirm</span><span><kbd>Esc</kbd>Resume</span></div>
 </div>
 
+<div id="cards" class="scr">
+ <div class="ttl">Upgrade</div>
+ <div id="cardrow"></div>
+ <p class="chint"><kbd>A</kbd><kbd>D</kbd> choose &nbsp;·&nbsp; <kbd>Space</kbd> take it</p>
+</div>
+
+<div id="win" class="scr">
+ <div class="ttl" id="wttl">The Ninth Angle falls</div>
+ <div id="ws">0</div>
+ <div id="wnb" class="badge hid">New best</div>
+ <div id="wbest">Best 0</div>
+ <div class="stats"><div><b id="w1">0:00</b><span>Time</span></div><div><b id="w2">0</b><span>Near misses</span></div><div><b id="w3">0</b><span>Kills</span></div><div><b id="w4">–</b><span>Best chain</span></div></div>
+ <div class="list"><button class="btn on" data-a="cont" tabindex="-1">Keep going</button><button class="btn" data-a="menu" tabindex="-1">Menu</button></div>
+</div>
+
 <div id="over" class="scr">
  <div class="ttl">Game over</div>
  <div id="os">0</div>
@@ -438,7 +532,7 @@ if(mq.addEventListener)mq.addEventListener('change',e=>{reduce=e.matches});
 
 /* ================= GAME STATE ================= */
 const AW=1000,AH=640,MAXV=430,CTRL='WASD / ARROWS · SPACE FIRE · P PAUSE · M MUTE';
-const G={state:'menu',tp:0,upT:8,kn:0,kT:-999,t:0,diff:0,speed:210,next:1,bonus:0,score:0,nmCd:0,tr:0,fl:0,fc:0,dyT:0,overT:0,nb:false,chain:0,chainT:0,nm:0,kills:0,maxChain:0};
+const G={state:'menu',tp:0,upT:8,kn:0,kT:-999,surgeT:0,t:0,diff:0,speed:210,next:1,bonus:0,score:0,nmCd:0,tr:0,fl:0,fc:0,dyT:0,overT:0,nb:false,chain:0,chainT:0,nm:0,kills:0,maxChain:0};
 let clock=0,ts=1,slowT=0,slowTo=1,freeze=0,best=+store.get('cube-best','0')||0,last=performance.now();
 const cam={x:0,y:0,z:1,zk:0};
 const shake=a=>{G.tr=Math.min(1,G.tr+a*(reduce?.2:1))};       // camera trauma
@@ -466,8 +560,8 @@ addEventListener('resize',resize);resize();
 /* ================= UI ================= */
 // Screens (title / pause / game over) are DOM overlays with keyboard + mouse navigation; the HUD is a DOM layer over the canvas.
 const hudEl=$('hud'),scoreEl=$('score'),bestEl=$('best'),muteBtn=$('mute'),pauseBtn=$('bp');
-const VER='1.0';
-const SC={menu:$('menu'),pause:$('pause'),over:$('over'),log:$('log')};
+const VER='1.1';
+const SC={menu:$('menu'),pause:$('pause'),over:$('over'),log:$('log'),cards:$('cards'),win:$('win')};
 let scr=null,focusI=0;
 const fmt=n=>Math.round(n).toLocaleString('en-US');
 const fmtT=s=>((s/60)|0)+':'+('0'+((s|0)%60)).slice(-2);
@@ -555,8 +649,8 @@ function tryDash(){
   if(l<.1){const sp=Math.hypot(P.vx,P.vy);                       // no input: dash the way you are moving
     if(sp>40){dx=P.vx/sp;dy=P.vy/sp;l=1}else{dx=P.ddx;dy=P.ddy;l=1}}
   else{dx/=l;dy/=l;l=1}
-  P.ddx=dx;P.ddy=dy;P.dsh=DSHT;P.dcd=DSHCD;
-  P.vx=dx*DSHV;P.vy=dy*DSHV;
+  P.ddx=dx;P.ddy=dy;P.dsh=DSHT*(1+U.phase*.1);P.dcd=DSHCD*Math.pow(.84,U.phase);
+  P.vx=dx*DSHV*(1+U.phase*.07);P.vy=dy*DSHV*(1+U.phase*.07);
   P.inv=Math.max(P.inv,DSHT+.04);                                 // the i-frames are the whole point
   P.qx=.34;P.qy=-.26;P.qxv=P.qyv=0;
   for(let i=0;i<16;i++){const a=Math.atan2(dy,dx)+Math.PI+rnd(-.7,.7),v=rnd(160,430);
@@ -585,7 +679,7 @@ function drawGhosts(){
 const dashEl=$('dashw'),dashF=$('dashf');let dashPrev=-1;
 function dashHud(){
   if(!dashEl)return;
-  const u=P.dcd>0?1-P.dcd/DSHCD:1,q=Math.round(u*100);
+  const full=DSHCD*Math.pow(.84,U.phase),u=P.dcd>0?1-P.dcd/full:1,q=Math.round(u*100);
   if(q===dashPrev)return;dashPrev=q;
   dashF.style.transform='scaleX('+u.toFixed(3)+')';
   dashEl.classList.toggle('rdy',u>=1);
@@ -836,6 +930,8 @@ function nearMiss(o){
   G.chain=(G.chainT>0?G.chain:0)+1;G.chainT=3.2;G.nm++;G.maxChain=Math.max(G.maxChain,G.chain);   // near misses within 3.2 s of each other build a chain
   const bn=Math.round(25*(1+Math.min(G.chain-1,4)*.5));G.bonus+=bn;G.tp=Math.min(100,G.tp+6);
   G.fl=Math.max(G.fl,.08);G.fc=0;shake(.28);slow(.13,.32);cam.zk+=reduce?0:.014;
+  if(U.chrono)slow(.1+.04*U.chrono,.62-.06*U.chrono);                 // chrono: the world drags
+  if(U.surge&&G.chain>=5&&G.surgeT<=0){G.surgeT=2.2+1.4*U.surge;popText(P.x,P.y-92,'SURGE','#ffd36a',22);sfx.up()}
   burst((P.x+o.x)/2,(P.y+o.y)/2,12,240,.5,2.6,0,3);burst(P.x,P.y,5,140,.35,2,1,3);sfx.near();
   popText(P.x,P.y-38,'+'+bn,'#fff',G.chain>1?28:23);if(G.chain>1)popText(P.x,P.y-66,'×'+G.chain+' chain','#ff6a66',16);
   scoreEl.animate([{transform:'scale(1.16)'},{transform:'scale(1)'}],{duration:340,easing:'cubic-bezier(.2,.8,.2,1)'});
@@ -939,18 +1035,39 @@ function drawShrink(){
 const COST=4,BN=80,PKN=4,FF='Rajdhani,"Arial Narrow",sans-serif',FONT='700 13px '+FF;
 const tpEl=$('tp'),tpv=$('tpv'),upsEl=$('ups'),cellsEl=$('cells');
 let gz=0,gt=0,tpi=-1,fireCd=0,tipDone=false;P.inv=0;P.gl=0;P.tk=0;
-const U={rate:0,power:0,multi:0,pierce:0,graze:0,shield:0};
-const UP=[['rate','RATE',5,3],['power','POWER',3,3],['multi','MULTI',4,2],['pierce','PIERCE',3,2],['graze','GRAZE',3,2],['shield','SHIELD',5,3]]; // key, label, max level, spawn weight
+const U={rate:0,power:0,multi:0,pierce:0,graze:0,shield:0,
+  homing:0,orbit:0,magnet:0,phase:0,surge:0,chrono:0};
+// key, label, max level, draw weight, what it does
+const UP=[
+  ['rate','RATE',5,3,'Shoot faster. Each level cuts the gap between volleys by a fifth.'],
+  ['power','POWER',3,3,'Every shot hits harder. Big cubes take fewer hits to break.'],
+  ['multi','MULTI',4,2,'Fire an extra shot per volley, spread in a fan.'],
+  ['pierce','PIERCE',3,2,'Shots carry on through what they kill instead of stopping.'],
+  ['graze','GRAZE',3,2,'A wider near-miss ring, and grazing fills TP faster.'],
+  ['shield','SHIELD',5,3,'One more shield. Each absorbs a hit and clears the cubes around you.'],
+  ['homing','HOMING',3,3,'Shots curve toward whatever is nearest. Harder to miss with.'],
+  ['orbit','ORBIT',2,1,'A shard circles you and breaks what it touches, then recharges.'],
+  ['magnet','MAGNET',2,2,'Pickups pull toward you from across the arena.'],
+  ['phase','PHASE',3,2,'The dash recharges sooner and carries you further.'],
+  ['surge','SURGE',2,2,'At a five chain, your fire rate doubles for a few seconds.'],
+  ['chrono','CHRONO',2,1,'Every near miss drags time out for a moment.']
+];
 const bul=Array.from({length:BN},()=>({on:0,x:0,y:0,vx:0,vy:0,l:0,d:1,p:0}));
 const pks=Array.from({length:PKN},()=>({on:0,x:0,y:0,k:0,l:0,t:0}));
 const bnEl=$('banner'),bnT=$('bt'),bnS=$('bs');
 function toast(t,sub){   // announcement banner: big title, red underline sweeps in, dim subtitle
   if(G.state==='menu')return;bnT.textContent=t;bnS.textContent=sub||'';bnEl.classList.remove('go');void bnEl.offsetWidth;bnEl.classList.add('go')
 }
-const ICO={rate:'<path d="M6 6l6 6-6 6M13 6l6 6-6 6"/>',power:'<path d="M13 3L6 13h5l-1 8 7-10h-5z"/>',multi:'<path d="M12 20v-9M12 20L6 8M12 20l6-12"/>',pierce:'<path d="M3 12h18M17 7l4 5-4 5M8 5v14"/>',graze:'<circle cx="12" cy="12" r="3"/><path d="M12 3a9 9 0 0 1 9 9M12 21a9 9 0 0 1-9-9"/>',shield:'<path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6z"/>'};
+const ICO={rate:'<path d="M6 6l6 6-6 6M13 6l6 6-6 6"/>',power:'<path d="M13 3L6 13h5l-1 8 7-10h-5z"/>',multi:'<path d="M12 20v-9M12 20L6 8M12 20l6-12"/>',pierce:'<path d="M3 12h18M17 7l4 5-4 5M8 5v14"/>',graze:'<circle cx="12" cy="12" r="3"/><path d="M12 3a9 9 0 0 1 9 9M12 21a9 9 0 0 1-9-9"/>',shield:'<path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6z"/>',
+  homing:'<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+  orbit:'<circle cx="12" cy="12" r="2.6"/><ellipse cx="12" cy="12" rx="9" ry="4.4" transform="rotate(-25 12 12)"/><circle cx="20" cy="8.6" r="1.8"/>',
+  magnet:'<path d="M6 4v8a6 6 0 0 0 12 0V4h-4v8a2 2 0 0 1-4 0V4z"/>',
+  phase:'<path d="M4 7h10M4 12h14M4 17h10"/><path d="M16 7l4 5-4 5"/>',
+  surge:'<path d="M4 14l5-10v7h5l-5 9v-6z"/><path d="M16 5l4 4M16 15l4 4"/>',
+  chrono:'<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>'};
 function upsHud(pop){   // inventory slots: icon + level pips
   let h='';for(let i=0;i<UP.length;i++){const u=UP[i],v=U[u[0]];let pp='';for(let j=0;j<u[2];j++)pp+='<b'+(j<v?' class="l"':'')+'></b>';
-    h+='<span class="up'+(v?' on':'')+'" title="'+u[1]+'"><svg viewBox="0 0 24 24">'+ICO[u[0]]+'</svg><span class="pp">'+pp+'</span></span>'}
+    h+='<span class="up'+(v?' on':' off')+'" title="'+u[1]+'"><svg viewBox="0 0 24 24">'+ICO[u[0]]+'</svg><span class="pp">'+pp+'</span></span>'}
   upsEl.innerHTML=h;if(pop>=0&&upsEl.children[pop])upsEl.children[pop].animate([{transform:'scale(1.35)',filter:'brightness(2)'},{transform:'none',filter:'none'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'})
 }
 const cells=Array.from({length:25},()=>cellsEl.appendChild(document.createElement('i')));let tpCount=0;
@@ -972,8 +1089,8 @@ function drawText(){
     ctx.font='700 '+f.s+'px '+FF;A(a);ctx.fillStyle=f.c;ctx.save();ctx.translate(f.x,f.y);ctx.scale(k,k);ctx.fillText(f.t,0,0);ctx.restore()}
   ctx.restore();A(1);
 }
-function resetArm(){for(const k in U)U[k]=0;U.shield=5;        // start every run with a full set of shields
-  for(let i=0;i<BN;i++)bul[i].on=0;for(let i=0;i<PKN;i++)pks[i].on=0;shrinkClear();knightReset();aquaReset();bridgeReset();lavaPreload();lavaSound(false);clearHaz();F.on=false;F.la=0;setKeyLabel(0);P.z=P.jt=0;fireCd=0;P.inv=0;P.gl=P.tk=0;P.dsh=0;P.dcd=0;P.ddx=1;P.ddy=0;dashPrev=-1;for(let i=0;i<DGN;i++)dgh[i].on=0;gt=0;tpi=-1;tmSec=-1;thrLv=0;upsHud()}
+function resetArm(){document.body.classList.remove('picking');for(const k in U)U[k]=0;U.shield=5;G.surgeT=0;ORB[0].a=0;ORB[1].a=Math.PI;ORB[0].cd=ORB[1].cd=0;        // start every run with a full set of shields
+  for(let i=0;i<BN;i++)bul[i].on=0;for(let i=0;i<PKN;i++)pks[i].on=0;shrinkClear();knightReset();aquaReset();bridgeReset();ninthReset();lavaPreload();lavaSound(false);clearHaz();F.on=false;F.la=0;setKeyLabel(0);P.z=P.jt=0;fireCd=0;P.inv=0;P.gl=P.tk=0;P.dsh=0;P.dcd=0;P.ddx=1;P.ddy=0;dashPrev=-1;for(let i=0;i<DGN;i++)dgh[i].on=0;gt=0;tpi=-1;tmSec=-1;thrLv=0;upsHud()}
 function fireBullet(x,y,a,d,p){for(let i=0;i<BN;i++){const b=bul[i];if(b.on)continue;b.on=1;b.x=x;b.y=y;b.vx=Math.cos(a)*900;b.vy=Math.sin(a)*900;b.l=1.4;b.d=d;b.p=p;return}}
 function stepShoot(dt){
   if(BR.on)return;                                        // the fire key is the Quick Embrace input here
@@ -984,9 +1101,9 @@ function stepShoot(dt){
   for(let j=0;j<KFN;j++){const k=kf[j];if(!k.on||k.st!==1)continue;const d=Math.hypot(k.x-P.x,k.y-P.y);if(d<bd){bd=d;bo=k}}
   let tx,ty,tvx=0,tvy=0;
   if(bo){tx=bo.x;ty=bo.y;tvx=bo.vx;tvy=bo.vy}
-  else{const bb=bossBody();if(!bb)return;tx=bb.x;ty=bb.y;bd=Math.hypot(tx-P.x,ty-P.y)}   // no cubes in range: shoot the Roaring Knight (he is immune)
+  else{const bb=naBody()||bossBody();if(!bb)return;tx=bb.x;ty=bb.y;bd=Math.hypot(tx-P.x,ty-P.y)}   // no cubes in range: shoot the Roaring Knight (he is immune)
   const t=bd/900,a=Math.atan2(ty+tvy*t-P.y,tx+tvx*t-P.x),n=1+U.multi,dx=Math.cos(a),dy=Math.sin(a);
-  fireCd=.26*Math.pow(.8,U.rate);G.tp-=COST;
+  fireCd=.26*Math.pow(.8,U.rate)*(G.surgeT>0?.5:1);G.tp-=COST;
   for(let i=0;i<n;i++)fireBullet(P.x+dx*16,P.y+dy*16,a+(i-(n-1)/2)*.15,1+U.power,U.pierce);
   P.vx-=dx*40;P.vy-=dy*40;                                 // tiny recoil
   for(let i=0;i<3;i++)emit(P.x+dx*18,P.y+dy*18,dx*260+rnd(-70,70),dy*260+rnd(-70,70),.18,2.4,0,6);
@@ -996,6 +1113,14 @@ let bossB=null;
 function stepBul(dt){bossB=bossBody();const n=Math.max(1,Math.ceil(dt/.012));for(let s=0;s<n;s++)stepBul1(dt/n)}   // substeps: no tunnelling
 function stepBul1(dt){
   for(let i=0;i<BN;i++){const b=bul[i];if(!b.on)continue;
+    if(U.homing&&b.l<1.25){let bd=460,bo=null;                      // homing: curve toward the nearest cube
+      for(let j=0;j<ON;j++){const o=obs[j];if(!o.on||o.a<.5)continue;
+        const d=Math.hypot(o.x-b.x,o.y-b.y);if(d<bd){bd=d;bo=o}}
+      if(!bo&&bossB){bo=bossB}
+      if(bo){const sp=Math.hypot(b.vx,b.vy),c=Math.atan2(b.vy,b.vx),
+        t=Math.atan2(bo.y-b.y,bo.x-b.x),w=Math.atan2(Math.sin(t-c),Math.cos(t-c)),
+        m=U.homing*2.4*dt,nn=c+clamp(w,-m,m);
+        b.vx=Math.cos(nn)*sp;b.vy=Math.sin(nn)*sp}}
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.l-=dt;
     if(b.l<=0||b.x<-80||b.x>AW+(bossB?600:80)||b.y<-80||b.y>AH+80){b.on=0;continue}
     for(let j=0;j<ON;j++){const o=obs[j];if(!o.on||o.a<.5||(o.hb===i&&gt-o.ht<.3))continue;
@@ -1008,7 +1133,10 @@ function stepBul1(dt){
       if(Math.hypot(b.x-k.x,b.y-k.y)>12+13*k.sz)continue;
       k.on=0;G.kills++;G.bonus+=10;burst(k.x,k.y,9,270,.45,2.8,1,3);sfx.kill();popText(k.x,k.y-12,'+10','#ff6a66',16);
       if(b.p>0)b.p--;else{b.on=0;break}}
-    if(b.on&&bossB&&Math.hypot(b.x-bossB.x,b.y-bossB.y)<bossB.r){fizzle(b);if(b.p>0)b.p--;else b.on=0}   // either boss: shots land and do absolutely nothing
+    if(b.on&&NA.on){const nb=naBody();                               // the Ninth Angle can be hurt
+      if(nb&&Math.hypot(b.x-nb.x,b.y-nb.y)<nb.r){naHurt(b.d);burst(b.x,b.y,5,240,.3,2.4,3,4);
+        if(b.p>0)b.p--;else{b.on=0;continue}}}
+    if(b.on&&bossB&&Math.hypot(b.x-bossB.x,b.y-bossB.y)<bossB.r){fizzle(b);if(b.p>0)b.p--;else b.on=0}   // the Knight: shots land and do absolutely nothing
   }
 }
 function kill(o,quiet){o.on=0;G.kills++;burst(o.x,o.y,14,320,.6,3.6,1,3);burst(o.x,o.y,6,200,.4,2.4,0,3);G.bonus+=10;shake(.05);sfx.kill();if(!quiet)popText(o.x,o.y-12,'+10','#ff6a66',17)}
@@ -1026,12 +1154,25 @@ function spawnPick(){
     p.on=1;p.x=x;p.y=y;p.k=k;p.l=16;p.t=0;burst(x,y,10,120,.5,2.4,0,3);return}
 }
 function collect(p){
-  const u=UP[p.k];p.on=0;U[u[0]]++;G.tp=Math.min(100,G.tp+30);upsHud(p.k);toast(u[1],'Level '+U[u[0]]);popText(p.x,p.y-30,'+30 TP','#fff',18);
+  p.on=0;
   for(let i=0;i<28;i++){const a=i/28*TAU;emit(p.x,p.y,Math.cos(a)*300,Math.sin(a)*300,.6,3,0,4)}
-  shake(.12);G.fl=Math.max(G.fl,.05);G.fc=0;sfx.up();
+  shake(.12);G.fl=Math.max(G.fl,.05);G.fc=0;
+  if(G.state==='menu'){collectApply(p,(Math.random()*UP.length)|0);return}   // the title demo just takes one
+  cardOpen(p);
 }
-function stepPicks(dt){for(let i=0;i<PKN;i++){const p=pks[i];if(!p.on)continue;p.t+=dt;p.l-=dt;if(p.l<=0){p.on=0;burst(p.x,p.y,8,90,.4,2,0,3);continue}if((G.state==='play'||G.state==='menu')&&P.alive&&P.drop<=0&&Math.hypot(P.x-p.x,P.y-p.y)<26)collect(p)}}
-Object.assign(sfx,{dashgo(){tone(520,.13,'triangle',.05,170);noise(.1,.1,2400)},
+function collectApply(p,k){
+  G.tp=Math.min(100,G.tp+30);popText(P.x,P.y-30,'+30 TP','#fff',18);
+  if(k>=0&&U[UP[k][0]]<UP[k][2]){const u=UP[k];U[u[0]]++;upsHud(k);toast(u[1],'Level '+U[u[0]])}
+  else toast('+30 TP','Everything is maxed');
+  sfx.up();
+}
+function stepPicks(dt){const mr=U.magnet?130+130*U.magnet:0;
+  for(let i=0;i<PKN;i++){const p=pks[i];if(!p.on)continue;p.t+=dt;p.l-=dt;
+    if(mr&&P.alive){const dx=P.x-p.x,dy=P.y-p.y,d=Math.hypot(dx,dy);
+      if(d<mr&&d>1){const k=(1-d/mr)*300*dt;p.x+=dx/d*k;p.y+=dy/d*k}}if(p.l<=0){p.on=0;burst(p.x,p.y,8,90,.4,2,0,3);continue}if((G.state==='play'||G.state==='menu')&&P.alive&&P.drop<=0&&Math.hypot(P.x-p.x,P.y-p.y)<26)collect(p)}}
+Object.assign(sfx,{win(){tone(523.25,.5,'sine',.09,784);setTimeout(()=>tone(659.25,.5,'sine',.08,988),140);setTimeout(()=>tone(783.99,1.1,'sine',.08,1174),300)},
+  cardUp(){tone(640,.12,'sine',.06,940);setTimeout(()=>tone(960,.16,'sine',.05,1300),80)},
+  dashgo(){tone(520,.13,'triangle',.05,170);noise(.1,.1,2400)},
   dashrdy(){tone(880,.07,'sine',.03,1180)},
   shwarn(){tone(180,.5,'square',.045,120);noise(.3,.12,500)},
   shmove(){tone(90,.9,'sawtooth',.07,54);noise(.8,.16,340)},
@@ -1039,6 +1180,78 @@ Object.assign(sfx,{dashgo(){tone(520,.13,'triangle',.05,170);noise(.1,.1,2400)},
   shopen(){tone(150,.5,'sine',.06,330)},
   dash(){tone(300,.14,'sawtooth',.05,80);noise(.1,.09,900)},split(){tone(420,.1,'square',.04,190);noise(.12,.08,1300)},
   shoot(){tone(760+rnd(0,80),.05,'triangle',.028,320)},hit(){tone(260,.05,'square',.025,140)},kill(){tone(200,.14,'sawtooth',.05,55);noise(.12,.1,1600)},up(){tone(520,.1,'sine',.07,780);setTimeout(()=>tone(780,.16,'sine',.07,1170),70)},shield(){noise(.4,.35,1400);tone(420,.3,'sine',.1,90)}});
+
+
+/* --- orbit: a shard that rides around you and breaks what it touches, then has to recharge --- */
+const ORB=[{a:0,cd:0},{a:Math.PI,cd:0}];
+function stepOrbit(dt){
+  if(!U.orbit||!P.alive||G.state!=='play')return;
+  for(let i=0;i<U.orbit;i++){const o=ORB[i];
+    o.a+=dt*2.15;if(o.cd>0){o.cd-=dt;continue}
+    const R=64,x=P.x+Math.cos(o.a)*R,y=P.y+Math.sin(o.a)*R;
+    for(let j=0;j<ON;j++){const q=obs[j];
+      if(!q.on||q.a<.5||q.s>40)continue;                         // it cannot break the big ones
+      if(Math.hypot(q.x-x,q.y-y)>q.s*.5+9)continue;
+      kill(q);o.cd=.85;burst(x,y,8,220,.35,2.4,0,4);break}}
+}
+function drawOrbit(){
+  if(!U.orbit||!P.alive)return;
+  ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<U.orbit;i++){const o=ORB[i],R=64,x=P.x+Math.cos(o.a)*R,y=P.y+Math.sin(o.a)*R,
+    rdy=o.cd<=0,s=rdy?9:5;
+    A(rdy?.75:.3);ctx.drawImage(glowW,x-26,y-26,52,52);
+    A(rdy?1:.42);ctx.fillStyle='#fff';
+    ctx.save();ctx.translate(x,y);ctx.rotate(o.a*2.4);rr(-s/2,-s/2,s,s,s*.25);ctx.fill();ctx.restore()}
+  ctx.globalCompositeOperation='source-over';A(1);
+}
+
+
+/* ================= UPGRADE CARDS =================
+   A pickup no longer hands you a random upgrade. It stops the arena and offers three, and you
+   take one. That one choice is what makes two runs with the same seed end up different. */
+const cardEl=$('cards'),cardRow=$('cardrow');let cardPick3=[],cardI=0,cardPend=null;
+function cardOpen(p){
+  const avail=[];
+  for(let i=0;i<UP.length;i++)if(U[UP[i][0]]<UP[i][2])for(let w=0;w<UP[i][3];w++)avail.push(i);
+  const seen={},pool=[];
+  for(let i=0;i<UP.length;i++)if(U[UP[i][0]]<UP[i][2])pool.push(i);
+  if(!pool.length){collectApply(p,-1);return}                   // everything maxed: just take the TP
+  cardPick3=[];
+  while(cardPick3.length<Math.min(3,pool.length)){
+    const k=avail.length?avail[(Math.random()*avail.length)|0]:pool[(Math.random()*pool.length)|0];
+    if(seen[k])continue;seen[k]=1;cardPick3.push(k)}
+  cardPend=p;cardI=0;
+  let h='';
+  for(let i=0;i<cardPick3.length;i++){const u=UP[cardPick3[i]],v=U[u[0]];
+    let pp='';for(let j=0;j<u[2];j++)pp+='<b'+(j<v?' class="l"':'')+'></b>';
+    h+='<div class="card'+(i===0?' sel':'')+(v?'':' new')+'" data-i="'+i+'">'+
+       '<svg viewBox="0 0 24 24">'+ICO[u[0]]+'</svg>'+
+       '<h4>'+u[1]+'</h4><span class="lv">'+(v?'Level '+v+' → '+(v+1):'New')+'</span>'+
+       '<p>'+u[4]+'</p><span class="pp">'+pp+'</span></div>'}
+  cardRow.innerHTML=h;
+  for(const k in keys)keys[k]=0;
+  G.state='cards';document.body.classList.add('picking');show('cards');sfx.cardUp();
+}
+function cardMove(d){
+  if(!cardPick3.length)return;
+  cardI=(cardI+d+cardPick3.length)%cardPick3.length;
+  const c=cardRow.children;for(let i=0;i<c.length;i++)c[i].classList.toggle('sel',i===cardI);
+  sfx.nav();
+}
+function cardTake(){
+  if(!cardPick3.length)return;
+  const k=cardPick3[cardI],p=cardPend;
+  cardPick3=[];cardPend=null;cardRow.innerHTML='';
+  document.body.classList.remove('picking');show(null);G.state='play';
+  collectApply(p,k);
+}
+cardRow.addEventListener('click',e=>{
+  const c=e.target.closest&&e.target.closest('.card');if(!c)return;
+  cardI=+c.dataset.i;cardTake()});
+cardRow.addEventListener('pointermove',e=>{
+  const c=e.target.closest&&e.target.closest('.card');if(!c||+c.dataset.i===cardI)return;
+  cardI=+c.dataset.i;const ch=cardRow.children;
+  for(let i=0;i<ch.length;i++)ch[i].classList.toggle('sel',i===cardI)});
 
 /* ================= TP FEEDBACK + MENU DEMO ================= */
 const thrB=$('thr').children,tmEl=$('tm');let thrLv=0,tmSec=-1,lastTk=0,lastRd=0,dax=0,day=0,dait=0;
@@ -1375,14 +1588,15 @@ function startEv(){
   const k=G.fForce?'floor'
          :(G.kForce||(G.t>28&&(!G.kn||G.t-G.kT>lerp(74,58,G.diff))))?'knight'   // he keeps coming back
          :(G.bForce||(G.kn>=1&&!G.bridgeDone&&G.t>170))?'bridge'
+         :(G.nForce||(!G.ninthDone&&G.t>300))?'ninth'                        // the end of the run, if you get there
          :['floor','barrage','storm'][(Math.random()*3)|0];
   G.fForce=false;
   shrinkClear();                                          // a set-piece needs the whole arena
-  const solo=k==='knight'||k==='bridge';       // the set-piece encounters announce themselves
+  const solo=k==='knight'||k==='bridge'||k==='ninth';       // the set-piece encounters announce themselves
   G.ev=k;F.t=0;F.c=.5;F.n=0;
   if(k==='knight'){for(let i=0;i<HN;i++)hl[i].on=0}else{clearHaz();for(let i=0;i<ON;i++){const o=obs[i];if(o.on){burst(o.x,o.y,8,220,.5,3,1,3);o.on=0}}}
   if(!solo){toast(k==='floor'?'Floor collapse':k==='barrage'?'Barrage':'Laser storm',k==='floor'?(TOUCH?'Tap right to jump':'Space to jump'):k==='barrage'?'Keep moving':'Watch the lines');sfx.event();shake(.45);G.fl=Math.max(G.fl,.12);G.fc=0}
-  if(k==='floor')buildFloor();if(k==='knight')startKnight();if(k==='bridge')startBridge();
+  if(k==='floor')buildFloor();if(k==='knight')startKnight();if(k==='ninth')startNinth();if(k==='bridge')startBridge();
 }
 function endEv(){G.ev=null;G.evT=lerp(50,38,G.diff);G.next=1.4;G.tp=Math.min(100,G.tp+50);G.upT=Math.min(G.upT,.6);toast('Survived','+50 TP');sfx.up()}
 function stepEv(dt){
@@ -1393,6 +1607,7 @@ function stepEv(dt){
   else if(G.ev==='barrage'){F.c-=dt;if(F.c<=0){F.c=lerp(.34,.22,G.diff);const a=F.n++%3===0;zone(0,a?clamp(P.x+rnd(-30,30),60,AW-60):rnd(70,AW-70),a?clamp(P.y+rnd(-30,30),60,AH-60):rnd(70,AH-70),.85,58,0)}if(F.t>7.5)endEv()}
   else if(G.ev==='knight')stepKnight(dt);
   else if(G.ev==='bridge')stepBridge(dt);
+  else if(G.ev==='ninth')stepNinth(dt);
   else{F.c-=dt;if(F.c<=0){F.c=lerp(.55,.4,G.diff);beam(P.x+rnd(-120,120),P.y+rnd(-120,120),rnd(0,Math.PI),.95,22,.45);sfx.warn()}if(F.t>7)endEv()}
 }
 Object.assign(sfx,{event(){noise(.6,.3,500);tone(70,.7,'sawtooth',.1,35)},crack(){noise(.3,.3,1800);tone(160,.25,'square',.04,60)},jump(){tone(330,.18,'sine',.07,660)}});
@@ -1576,6 +1791,275 @@ function aquaAbort(){}
 function stepKnives(){}
 function drawKnives(){}
 function clearKnives(){}
+
+
+/* ================= THE NINTH ANGLE (final boss) =================
+   A thing from one dimension further out. What you fight is not the creature -- it is the part
+   of it that intersects the arena, the way a hand pushed through water is only ever a ring of
+   wet. So it never walks: it withdraws and re-enters. Its body is a tesseract turning in the XW
+   and YW planes, which from here looks like a cube endlessly folding through itself, and the
+   wheels around it are the only part that holds still enough to look at.
+   Three shells. Break all three and the run is won. */
+const NAV=[],NAE=[];
+for(let i=0;i<16;i++)NAV.push([i&1?1:-1,i&2?1:-1,i&4?1:-1,i&8?1:-1]);
+for(let i=0;i<16;i++)for(let b=0;b<4;b++){const j=i^(1<<b);if(j>i)NAE.push([i,j])}
+const NA={on:false,st:'gone',t:0,x:AW/2,y:AH*.34,r:[0,0,0],sc:0,s:1,
+  hp:1,mhp:1,shell:0,atk:-1,atkT:0,seq:0,flash:0,hurt:0,hit:0,bl:[],eyes:[],
+  snd:null,drift:0,warp:0,died:false};
+const NAR=124;                                    // the body's drawn radius at scale 1
+const glowP=glow('186,170,255'),glowY=glow('255,236,180');
+const NAHP=[200,240,280];                         // damage to break each shell
+
+/* --- 4D -> 3D -> 2D. The w divide is what makes it turn inside out. --- */
+function naPt(v,r){
+  let x=v[0],y=v[1],z=v[2],w=v[3],c,s,t;
+  c=Math.cos(r[0]);s=Math.sin(r[0]);t=x*c-w*s;w=x*s+w*c;x=t;        // XW
+  c=Math.cos(r[1]);s=Math.sin(r[1]);t=y*c-w*s;w=y*s+w*c;y=t;        // YW
+  c=Math.cos(r[2]);s=Math.sin(r[2]);t=x*c-z*s;z=x*s+z*c;x=t;        // XZ, so it reads as a solid too
+  const k4=2.35/Math.max(.85,2.35-w);x*=k4;y*=k4;z*=k4;
+  const k3=3.1/Math.max(1.1,3.1-z);
+  return [x*k3,y*k3,(k4-.55)*.9];                                    // x, y, and how "near" in w
+}
+/* --- audio: a drone that never quite settles, two voices a hair apart --- */
+function naSound(on){
+  if(!AC)return;
+  if(on&&!NA.snd){try{
+    const g=AC.createGain();g.gain.value=0;g.connect(master);
+    const o=[];for(let i=0;i<4;i++){const s=AC.createOscillator();
+      s.type=i<2?'sine':'triangle';s.frequency.value=[58.27,87.31,174.6,233.1][i]*(1+(i-1.5)*.0016);
+      const gg=AC.createGain();gg.gain.value=[.5,.34,.13,.07][i];s.connect(gg);gg.connect(g);s.start();o.push(s)}
+    NA.snd={g,o};g.gain.linearRampToValueAtTime(.055,AC.currentTime+2.2);
+  }catch(e){}}
+  else if(!on&&NA.snd){try{const{g,o}=NA.snd;g.gain.cancelScheduledValues(AC.currentTime);
+    g.gain.linearRampToValueAtTime(0,AC.currentTime+1.1);
+    for(let i=0;i<o.length;i++)o[i].stop(AC.currentTime+1.2)}catch(e){}NA.snd=null}
+}
+/* --- lifecycle --- */
+function startNinth(){
+  G.nForce=false;NA.on=true;NA.st='arrive';NA.t=0;NA.sc=0;NA.s=1;
+  NA.r=[0,0,0];NA.shell=0;NA.mhp=NAHP[0];NA.hp=NA.mhp;NA.atk=-1;NA.atkT=2.6;NA.seq=0;
+  NA.flash=0;NA.hurt=0;NA.hit=0;NA.bl.length=0;NA.drift=0;NA.warp=0;NA.died=false;
+  NA.x=AW/2;NA.y=AH*.34;
+  NA.eyes.length=0;
+  for(let w=0;w<3;w++)for(let i=0;i<[7,9,11][w];i++)
+    NA.eyes.push({w,a:i/[7,9,11][w]*TAU,bl:rnd(0,6),op:1});
+  G.tp=Math.min(100,G.tp+55);
+  naSound(true);
+  toast('The Ninth Angle','It turns in a direction you do not have');
+  nameplate(true,'The Ninth Angle');$('boss').classList.add('live');naBar();
+  shake(.7);G.fl=Math.max(G.fl,.3);G.fc=0;slow(1.1,.22);sfx.naArrive();
+}
+function naBar(){const f=$('bf');if(f)f.style.transform='scaleX('+clamp(NA.hp/NA.mhp,0,1).toFixed(3)+')'}
+function ninthEnd(win){
+  NA.on=false;NA.st='gone';naSound(false);nameplate(false);
+  $('boss').classList.remove('live');$('bf').style.transform='';
+  clearHaz();G.ninthDone=true;
+  if(win)winRun();else endEv();
+}
+function ninthAbort(){if(!NA.on)return;NA.on=false;NA.st='gone';naSound(false);nameplate(false);
+  $('boss').classList.remove('live');$('bf').style.transform=''}
+function ninthReset(){NA.on=false;NA.st='gone';NA.bl.length=0;naSound(false);
+  G.ninthDone=false;G.nForce=false;$('boss').classList.remove('live')}
+
+/* --- damage --- */
+function naBody(){
+  if(!NA.on||NA.st==='arrive'&&NA.t<2.2||NA.st==='dying'||NA.st==='gone')return null;
+  return{x:NA.x,y:NA.y,r:NAR*NA.sc*.62};
+}
+function naHurt(d){
+  if(!NA.on||NA.st!=='fight')return;
+  NA.hp-=d;NA.hit=.12;naBar();
+  if(NA.hp<=0){
+    NA.shell++;
+    if(NA.shell>=3){NA.st='dying';NA.t=0;NA.died=true;clearHaz();NA.bl.length=0;
+      naSound(false);shake(1);G.fl=Math.max(G.fl,.5);G.fc=0;slow(1.6,.14);sfx.naDie();return}
+    NA.mhp=NAHP[NA.shell];NA.hp=NA.mhp;NA.st='shell';NA.t=0;NA.flash=1;
+    clearHaz();NA.bl.length=0;naBar();
+    shake(.85);G.fl=Math.max(G.fl,.4);G.fc=0;slow(.9,.2);sfx.naShell();
+    for(let i=0;i<70;i++){const a=rnd(0,TAU),v=rnd(260,860);
+      emit(NA.x,NA.y,Math.cos(a)*v,Math.sin(a)*v,1,3.6,3,1.5)}
+  }
+}
+/* --- the attacks ------------------------------------------------------------------------
+   Everything it throws is a cross-section: it exists for a moment, does its work, and is
+   gone, because nothing of it can stay in a space this flat for long. */
+function naGaze(){            // the wheels stop. every eye looks at you, then burns a line
+  const n=2+NA.shell;
+  for(let i=0;i<n;i++){
+    const e=NA.eyes[(Math.random()*NA.eyes.length)|0],
+      rr0=[86,124,162][e.w]*NA.sc,
+      ex=NA.x+Math.cos(e.a+NA.drift*(e.w%2?-1:1))*rr0,
+      ey=NA.y+Math.sin(e.a+NA.drift*(e.w%2?-1:1))*rr0*.62;
+    beam(ex,ey,Math.atan2(P.y-ey,P.x-ex),lerp(1.05,.78,NA.shell/2)+i*.17,20,.5)}
+  sfx.naGaze();
+}
+function naBloom(){           // cross-sections open in the arena: a polygon whose sides keep
+  const n=3+NA.shell;         // changing, because what passes through is not a flat thing
+  for(let i=0;i<n;i++){
+    let x,y,t=0;
+    do{x=rnd(110,AW-110);y=rnd(110,AH-110)}while(Math.hypot(P.x-x,P.y-y)<150&&++t<10);
+    NA.bl.push({x,y,t:0,dur:lerp(1.5,1.1,NA.shell/2),R:rnd(64,104),n0:3,n1:5+(Math.random()*4|0)})}
+  sfx.naBloom();
+}
+function naUnfold(){          // the body opens into its net and each cell drops a blast
+  const cx=NA.x,cy=NA.y,st=rnd(0,TAU);
+  for(let i=0;i<8;i++){
+    const a=st+i*TAU/8,d=160+((i&1)?110:0);
+    zone(0,clamp(cx+Math.cos(a)*d,66,AW-66),clamp(cy+Math.sin(a)*d,66,AH-66),
+      lerp(1.1,.84,NA.shell/2)+(i%4)*.11,74,0)}
+  zone(0,clamp(P.x,66,AW-66),clamp(P.y,66,AH-66),lerp(1.25,.95,NA.shell/2),80,0);
+  NA.warp=1;sfx.naUnfold();
+}
+function naFold(){            // it inhales the cross-sections and breathes them back as a spiral
+  const N=14+NA.shell*5,v=G.speed*.92,st=rnd(0,TAU),dir=Math.random()<.5?1:-1;
+  for(let i=0;i<N;i++){const a=st+dir*i*.42;
+    const o=spawnObs(NA.x,NA.y,Math.cos(a)*v,Math.sin(a)*v,22,i*.075);
+    if(o)o.vr=rnd(-6,6)}
+  NA.warp=1;burst(NA.x,NA.y,22,300,.6,3.4,3,2);sfx.naFold();
+}
+function naAngle(){           // the signature: a line through a direction the arena does not
+  const a0=rnd(0,TAU);        // have, sweeping, with everything mirrored across it
+  for(let i=0;i<5;i++)beam(NA.x,NA.y,a0+i*.42,1.2+i*.2,26,0);
+  const v=G.speed*.8;
+  for(let i=0;i<6;i++){const a=a0+Math.PI+i*.3;
+    spawnObs(NA.x,NA.y,Math.cos(a)*v,Math.sin(a)*v,26,.5+i*.09);
+    spawnObs(NA.x,NA.y,Math.cos(-a)*v,Math.sin(-a)*v,26,.5+i*.09)}
+  NA.warp=1;sfx.naAngle();
+}
+const NAATK=[naGaze,naBloom,naUnfold,naFold,naAngle];
+function naNext(){
+  const pool=NA.shell===0?3:NA.shell===1?4:5;                 // more of it reaches through each shell
+  let k;do{k=(Math.random()*pool)|0}while(k===NA.atk&&pool>1);
+  NA.atk=k;NAATK[k]();
+  NA.atkT=lerp(3.4,2.2,NA.shell/2)+(k===1?.7:0);
+}
+/* --- step --- */
+function stepNinth(dt){
+  if(!NA.on)return;
+  NA.t+=dt;
+  NA.flash=Math.max(0,NA.flash-dt*2);NA.hit=Math.max(0,NA.hit-dt*5);NA.warp=Math.max(0,NA.warp-dt*1.6);
+  NA.drift+=dt*.34;
+  const sp=NA.st==='fight'?1:NA.st==='shell'?2.4:.5;
+  NA.r[0]+=dt*.52*sp;NA.r[1]+=dt*.31*sp;NA.r[2]+=dt*.14*sp;     // the XW turn is the one that folds it
+  for(let i=0;i<NA.eyes.length;i++){const e=NA.eyes[i];
+    e.bl-=dt;if(e.bl<=0){e.bl=rnd(2.6,7);e.op=0}
+    e.op=Math.min(1,e.op+dt*4)}
+  // cross-sections blooming open, then shattering into what they always were
+  for(let i=NA.bl.length-1;i>=0;i--){const b=NA.bl[i];b.t+=dt;
+    if(b.t>=b.dur){
+      const n=8+NA.shell*2,v=G.speed*.86;
+      for(let k=0;k<n;k++){const a=k/n*TAU+rnd(-.1,.1);
+        spawnObs(b.x,b.y,Math.cos(a)*v,Math.sin(a)*v,20)}
+      burst(b.x,b.y,16,330,.5,3.2,3,2);shake(.14);sfx.naShatter();
+      NA.bl.splice(i,1)}}
+  switch(NA.st){
+  case 'arrive':{
+    const u=clamp(NA.t/3.2,0,1);
+    NA.sc=easeOutBack(Math.min(1,u*1.25))*.001+u*u*(3-2*u);
+    G.tr=Math.max(G.tr,.1*(1-u));
+    if(NA.t>1.1&&NA.t<1.17){shake(.5);G.fl=Math.max(G.fl,.2);G.fc=0}
+    if(u>=1){NA.st='fight';NA.t=0;NA.sc=1;NA.atkT=1.5}
+    break}
+  case 'shell':{                                               // a layer comes off; it reassembles
+    const u=clamp(NA.t/1.9,0,1);
+    NA.sc=1+.26*Math.sin(u*Math.PI);
+    if(Math.random()<.5)emit(NA.x+rnd(-90,90),NA.y+rnd(-90,90),rnd(-180,180),rnd(-180,180),.6,3,3,2);
+    if(u>=1){NA.st='fight';NA.t=0;NA.sc=1;NA.atkT=1.1;
+      toast(['','Second shell','Last shell'][NA.shell],'It is still here')}
+    break}
+  case 'fight':{
+    NA.sc=1+.025*Math.sin(clock*1.6);
+    NA.x=AW/2+Math.sin(clock*.33)*120;NA.y=AH*.34+Math.cos(clock*.27)*26;
+    if((NA.atkT-=dt)<=0)naNext();
+    break}
+  case 'dying':{                                               // it withdraws one dimension at a time
+    const u=clamp(NA.t/4.4,0,1);
+    NA.sc=Math.max(0,1-u*u);
+    NA.r[0]+=dt*2.6*u;NA.r[1]+=dt*1.9*u;
+    G.tr=Math.max(G.tr,.2+.3*u);
+    if(Math.random()<.85)emit(NA.x+rnd(-120,120),NA.y+rnd(-120,120),rnd(-260,260),rnd(-260,260),rnd(.6,1.4),rnd(2,4.6),3,1.1);
+    if(NA.t>1.0&&NA.t<1.06){shake(.6);G.fl=Math.max(G.fl,.35);G.fc=0;sfx.naShell()}
+    if(NA.t>2.2&&NA.t<2.26){shake(.8);G.fl=Math.max(G.fl,.45);G.fc=0;sfx.naShell()}
+    if(u>=1){G.fl=1;G.fc=0;ninthEnd(true);return}
+    break}
+  }
+}
+/* --- draw ------------------------------------------------------------------------------- */
+function drawNinth(){
+  if(!NA.on||NA.sc<=.001)return;
+  const S=NAR*NA.sc,hot=NA.hit>0;
+  ctx.save();rr(0,0,AW,AH,26);ctx.clip();
+  // it takes the colour out of the room
+  A(clamp(NA.sc,0,1)*.42);ctx.fillStyle='#05040a';ctx.fillRect(0,0,AW,AH);
+  ctx.globalCompositeOperation='lighter';
+  // light coming off it, in a colour the rest of the game does not use
+  for(let i=0;i<5;i++){const r=(210+70*Math.sin(clock*.6+i*1.3))*NA.sc;
+    A(.1+.05*Math.sin(clock*.9+i));
+    ctx.drawImage(i&1?glowP:glowY,NA.x-r,NA.y-r,r*2,r*2)}
+  // the halo: the one part that does not move
+  A(.5+.2*Math.sin(clock*2));ctx.strokeStyle='rgba(255,240,196,.9)';ctx.lineWidth=2.4;
+  ctx.beginPath();ctx.arc(NA.x,NA.y,S*1.46,0,TAU);ctx.stroke();
+  A(.2);ctx.lineWidth=11;ctx.beginPath();ctx.arc(NA.x,NA.y,S*1.46,0,TAU);ctx.stroke();
+  // three wheels of eyes, each turning at its own rate, drawn flat-on so they read as rings
+  for(let w=0;w<3;w++){
+    if(w<NA.shell&&NA.st!=='arrive')continue;                   // a broken shell takes its wheel
+    const R=[86,124,162][w]*NA.sc,dir=w%2?-1:1,sq=[.62,.78,.52][w];
+    A(.22);ctx.strokeStyle=w===1?'rgba(186,170,255,.9)':'rgba(255,236,180,.9)';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.ellipse(NA.x,NA.y,R,R*sq,w*.5,0,TAU);ctx.stroke();
+  }
+  for(let i=0;i<NA.eyes.length;i++){const e=NA.eyes[i];
+    if(e.w<NA.shell&&NA.st!=='arrive')continue;
+    const R=[86,124,162][e.w]*NA.sc,dir=e.w%2?-1:1,sq=[.62,.78,.52][e.w],ang=e.a+NA.drift*dir,
+      ex=NA.x+Math.cos(ang)*R,ey=NA.y+Math.sin(ang)*R*sq,
+      lid=e.op,er=(7+e.w*1.4)*NA.sc;
+    if(lid<=.02)continue;
+    A(.85*lid);ctx.fillStyle='rgba(255,246,214,1)';
+    ctx.beginPath();ctx.ellipse(ex,ey,er,er*.56*lid,ang+Math.PI/2,0,TAU);ctx.fill();
+    A(.9*lid);ctx.fillStyle=hot?'rgba(255,120,110,1)':'rgba(32,16,48,1)';
+    ctx.beginPath();ctx.arc(ex,ey,er*.38*lid,0,TAU);ctx.fill();
+    A(.3*lid);ctx.drawImage(glowY,ex-er*2.6,ey-er*2.6,er*5.2,er*5.2);
+  }
+  // the body: a tesseract, mid-fold
+  const pts=[];
+  for(let i=0;i<16;i++){const p=naPt(NAV[i],NA.r);pts.push([NA.x+p[0]*S*.30,NA.y+p[1]*S*.30,p[2]])}
+  ctx.lineCap='round';
+  for(let e=0;e<NAE.length;e++){
+    const a=pts[NAE[e][0]],b=pts[NAE[e][1]],d=(a[2]+b[2])*.5,
+      near=clamp(d,0,1.6);
+    A(.14+.5*near);
+    ctx.strokeStyle=hot?'rgba(255,150,140,1)':near>.95?'rgba(255,246,216,1)':'rgba(176,160,255,1)';
+    ctx.lineWidth=(.7+2.1*near)*Math.max(.4,NA.sc);
+    ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+  for(let i=0;i<16;i++){const p=pts[i],near=clamp(p[2],0,1.6);
+    A(.2+.5*near);ctx.fillStyle='rgba(255,250,232,1)';
+    ctx.beginPath();ctx.arc(p[0],p[1],(1+2.2*near)*Math.max(.4,NA.sc),0,TAU);ctx.fill()}
+  // the core, where all of it would meet if it were allowed to
+  A(.6+.3*Math.sin(clock*3));ctx.drawImage(glowY,NA.x-S*.6,NA.y-S*.6,S*1.2,S*1.2);
+  if(NA.flash>.01){A(NA.flash*.8);ctx.drawImage(glowP,NA.x-S*3,NA.y-S*3,S*6,S*6)}
+  // cross-sections opening in the arena
+  for(let i=0;i<NA.bl.length;i++){const b=NA.bl[i],u=clamp(b.t/b.dur,0,1),
+    R=b.R*(.2+.8*easeOut3(u)),n=Math.round(lerp(b.n0,b.n1,u)),ph=u*2.4;
+    A(.3+.6*u);ctx.strokeStyle='rgba(206,190,255,1)';ctx.lineWidth=2+2.4*u;
+    ctx.beginPath();
+    for(let k=0;k<=n;k++){const a=ph+k/n*TAU,x=b.x+Math.cos(a)*R,y=b.y+Math.sin(a)*R;
+      k?ctx.lineTo(x,y):ctx.moveTo(x,y)}
+    ctx.stroke();
+    A(.18+.4*u);ctx.drawImage(glowP,b.x-R*1.7,b.y-R*1.7,R*3.4,R*3.4);
+    A(.5*u);ctx.strokeStyle='rgba(255,240,200,.9)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(b.x,b.y,R*.26,0,TAU);ctx.stroke()}
+  ctx.globalCompositeOperation='source-over';A(1);ctx.restore();
+}
+Object.assign(sfx,{
+  naArrive(){tone(42,2.4,'sine',.14,28);tone(63,1.8,'triangle',.07,47);noise(1.4,.2,320)},
+  naGaze(){tone(1180,.5,'sine',.045,1760);tone(880,.6,'triangle',.03,1320)},
+  naBloom(){tone(330,.6,'sine',.05,500);tone(495,.5,'sine',.03,740)},
+  naUnfold(){tone(74,.9,'sawtooth',.09,38);noise(.5,.18,520)},
+  naFold(){tone(140,.8,'sine',.07,52);noise(.6,.16,700)},
+  naAngle(){tone(220,1,'triangle',.06,110);tone(330,.9,'sine',.04,165)},
+  naShatter(){noise(.3,.22,2200);tone(620,.2,'square',.035,240)},
+  naShell(){noise(1,.4,420);tone(58,1.4,'sawtooth',.15,26);tone(466,.7,'sine',.06,117)},
+  naDie(){noise(2,.45,300);tone(44,3,'sine',.16,22);tone(174.6,2.4,'triangle',.08,43.65)}
+});
 
 /* ================= TOUCH CONTROLS ================= */
 // Left ~46% of the screen is a floating analog stick (it appears under your thumb wherever you
@@ -2197,7 +2681,7 @@ addEventListener('resize',feedSize);feedSize();verStamp();
 
 /* ================= FLOW ================= */
 function die(){
-  G.state='dying';G.dyT=0;P.alive=false;knightAbort();aquaAbort();bridgeAbort();shrinkClear();lavaSound(false);G.chain=0;G.chainT=0;G.nb=G.score>best;if(G.nb){best=G.score;store.set('cube-best',String(best))}
+  G.state='dying';G.dyT=0;P.alive=false;knightAbort();aquaAbort();bridgeAbort();ninthAbort();shrinkClear();lavaSound(false);G.chain=0;G.chainT=0;G.nb=G.score>best;if(G.nb){best=G.score;store.set('cube-best',String(best))}
   freeze=.11;slow(.9,.22);shake(1);G.fl=.6;G.fc=2;cam.zk+=reduce?0:.03;   // hit-stop → slow-mo → shake → flash
   burst(P.x,P.y,30,560,1.2,8,0,2.2);burst(P.x,P.y,34,720,.95,5.5,1,2.6);sfx.death();
 }
@@ -2222,16 +2706,34 @@ function toMenu(){   // back to the title screen; the AI-piloted demo takes over
   freeze=0;slowT=0;ts=1;demoReset();hudEl.classList.remove('on');nameplate(false);hsUpdate();show('menu');
 }
 function pause(){if(G.state!=='play')return;G.state='paused';try{$('vfv').pause()}catch(e){}
-  if(AC&&(MUS.h||K.vac||K.roar||LVS.h||BR.wind))AC.suspend();for(const k in keys)keys[k]=0;show('pause')}
+  if(AC&&(MUS.h||K.vac||K.roar||LVS.h||BR.wind||NA.snd))AC.suspend();for(const k in keys)keys[k]=0;show('pause')}
 function resume(){audio();G.state='play';show(null);if(BR.on)feedShow(true)}
 function openLog(){show('log');$('logs').scrollTop=0;sfx.ui()}
-function act(a){audio();if(a==='menu'&&scr==='log'){show('menu');sfx.ui();return}if(a==='install'){doInstall();return}if(a==='log'){openLog();return}if(a==='play'||a==='retry'||a==='restart')start();else if(a==='resume')resume();else if(a==='menu')toMenu()}
+function act(a){audio();if(a==='menu'&&scr==='log'){show('menu');sfx.ui();return}if(a==='cont'){winCont();return}if(a==='install'){doInstall();return}if(a==='log'){openLog();return}if(a==='play'||a==='retry'||a==='restart')start();else if(a==='resume')resume();else if(a==='menu')toMenu()}
+
+
+/* --- winning: the only ending the game has. You can stop here, or go on without it. --- */
+function winRun(){
+  G.ev=null;G.evT=lerp(50,38,G.diff);G.next=1.6;G.state='won';
+  G.nb=G.score>best;if(G.nb){best=G.score;store.set('cube-best',String(best))}
+  hsUpdate();
+  $('ws').textContent=fmt(G.score);$('wbest').textContent='Best '+fmt(Math.max(best,G.score));
+  $('wnb').classList.toggle('hid',!G.nb);
+  $('w1').textContent=fmtT(G.t);$('w2').textContent=fmt(G.nm);
+  $('w3').textContent=fmt(G.kills);$('w4').textContent=G.maxChain>1?'×'+G.maxChain:'–';
+  show('win');sfx.win();
+}
+function winCont(){show(null);G.state='play';G.evT=Math.max(G.evT,14);G.tp=Math.min(100,G.tp+60);
+  toast('Beyond','Nothing is coming to end it now')}
 
 /* ================= UPDATE ================= */
 const dust=Array.from({length:46},()=>({x:rnd(-200,AW+200),y:rnd(-150,AH+150),z:rnd(.25,1),vx:rnd(-6,6),vy:rnd(-10,-2),ph:rnd(0,TAU)}));
 function update(dt){
-  clock+=dt;freeze=Math.max(0,freeze-dt);slowT-=dt;
+  clock+=dt;
+  if(G.state==='cards'){chainHud();return}
+freeze=Math.max(0,freeze-dt);slowT-=dt;
   ts=freeze>0?0:damp(ts,slowT>0?slowTo:1,slowT>0?30:6,dt);const sd=dt*ts;   // sd = gameplay (slowable) time
+  if(G.surgeT>0)G.surgeT-=dt;
   G.fl=damp(G.fl,0,6,dt);G.tr=Math.max(0,G.tr-dt*1.5);G.nmCd-=dt;gt+=sd;P.inv=Math.max(0,P.inv-sd);K.fr=damp(K.fr,K.on?1:0,2.2,dt);if(G.chainT>0){G.chainT-=dt;if(G.chainT<=0)G.chain=0}
   if(G.state==='play'||G.state==='menu'){
     G.t+=sd;G.diff=1-Math.exp(-G.t/118);G.speed=210*(1+G.diff*.86);           // difficulty curve (gentler, so a run breathes)
@@ -2239,7 +2741,7 @@ function update(dt){
     const sc=(G.t*10+G.bonus)|0;if(sc!==G.score){G.score=sc;hudUpdate()}
     G.upT-=sd;if(G.upT<=0){if(!BR.on)spawnPick();G.upT=lerp(10,7,G.diff)}    // an upgrade appears every ~8s
   }
-  gz=0;stepShrink(sd);stepDash(sd);stepPlayer(sd);stepJump(sd);stepObs(sd);stepHaz(sd);stepHoles(sd);stepEv(sd);stepKnives(sd);stepShoot(sd);stepBul(sd);stepPicks(sd);stepParts(sd);stepText(dt);
+  gz=0;stepShrink(sd);stepOrbit(sd);stepDash(sd);stepPlayer(sd);stepJump(sd);stepObs(sd);stepHaz(sd);stepHoles(sd);stepEv(sd);stepKnives(sd);stepShoot(sd);stepBul(sd);stepPicks(sd);stepParts(sd);stepText(dt);
   if((G.state==='play'||G.state==='menu')&&P.alive)G.tp=Math.min(100,G.tp+gz*32*(1+.4*U.graze)*sd);
   for(let i=0;i<dust.length;i++){const d=dust[i];d.x+=d.vx*d.z*dt;d.y+=d.vy*d.z*dt;if(d.y<-150)d.y=AH+150;if(d.x<-200)d.x=AW+200;if(d.x>AW+200)d.x=-200}
   if(!Number.isFinite(P.x)||!Number.isFinite(P.y)||!Number.isFinite(P.vx)||!Number.isFinite(P.vy)){
@@ -2320,7 +2822,7 @@ function render(){
     rr(-s/2,-s/2,s,s,s*.18);ctx.fill();
     ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
   }
-  drawKnives();drawShrink();
+  drawNinth();drawKnives();drawShrink();
   // laser beams + blast zones, clipped to the arena
   ctx.save();rr(0,0,AW,AH,26);ctx.clip();
   for(let i=0;i<HN;i++)if(hl[i].on)drawHole(hl[i]);
@@ -2329,7 +2831,7 @@ function render(){
   ctx.restore();ctx.globalCompositeOperation='source-over';A(1);
   if(F.on&&F.heat>.02){ctx.globalCompositeOperation='lighter';A(F.heat*(.3+.25*Math.sin(clock*3)));
     ctx.drawImage(glowL,P.x-120,P.y-120,240,240);ctx.globalCompositeOperation='source-over';A(1)}
-  if(P.alive){drawGhosts();drawPlayer()}
+  if(P.alive){drawGhosts();drawPlayer();drawOrbit()}
   // upgrade pickups
   ctx.font=FONT;ctx.textAlign='center';
   for(let i=0;i<PKN;i++){const p=pks[i];if(!p.on)continue;
@@ -2367,9 +2869,16 @@ addEventListener('keydown',e=>{
   if(e.repeat)return;audio();
   if(c==='KeyM'){setMute(!muted);sfx.ui();return}
   const s=G.state,pk=c==='KeyP'||c==='Escape';
+  if(s==='cards'){
+    if(c==='ArrowLeft'||c==='KeyA')cardMove(-1);
+    else if(c==='ArrowRight'||c==='KeyD')cardMove(1);
+    else if(c==='Space'||c==='Enter'||c==='NumpadEnter'||c==='KeyW'||c==='ArrowUp')cardTake();
+    return}
+  if(s==='won'){if(c==='Enter'||c==='NumpadEnter'||c==='Space')winCont();else if(c==='Escape')toMenu();else menuKey(c);return}
   if(DBG&&c==='KeyB'&&s==='play'&&!G.ev){G.kForce=true;G.evT=0;return}                  // debug (?debug): summon the Roaring Knight
   if(DBG&&c==='KeyF'&&s==='play'&&!G.ev){G.fForce=true;G.evT=0;return}                  // debug (?debug): trigger the floor collapse
   if(DBG&&c==='KeyG'&&s==='play'&&!G.ev&&!G.bridgeDone){G.bForce=true;G.evT=0;return}   // debug (?debug): start the Gravity Bridge
+  if(DBG&&c==='KeyN'&&s==='play'&&!G.ev){G.nForce=true;G.evT=0;return}                  // debug (?debug): summon The Ninth Angle
   if(s==='play'){if(pk)pause();else if(c==='KeyR')start()}
   else if(s==='paused'){if(pk)resume();else if(c==='KeyR')start();else menuKey(c)}
   else if(s==='menu'){if(scr==='log'){if(c==='Escape'||c==='Backspace')toMenu();else menuKey(c);return}start()}
@@ -2379,7 +2888,7 @@ addEventListener('keyup',e=>{const m=MAP[e.code];if(m)keys[m]=0});
 addEventListener('pointerdown',e=>{
   if(e.pointerType==='touch')return;                      // touch goes through the stick + fire zones instead
   if(e.target.closest&&e.target.closest('.btn,#btns'))return;audio();const s=G.state;
-  if(s==='menu'){if(scr!=='log')start()}else if(s==='play')keys.f=1;
+  if(s==='menu'){if(scr!=='log')start()}else if(s==='play')keys.f=1;else if(s==='cards')return;
 });
 addEventListener('pointerup',e=>{if(e.pointerType!=='touch')keys.f=0});
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.btn');if(!b||(G.state==='over'&&G.overT<.6))return;act(b.dataset.a);b.blur()});
